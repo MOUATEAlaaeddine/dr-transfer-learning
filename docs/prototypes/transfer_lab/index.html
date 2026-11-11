@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RetinaLens Transfer Lab</title>
+<!-- DISPOSABLE PROTOTYPE: mock data only, not project code. Nothing here is trained. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0c0b; --raise:#151513; --rule:#2a2924; --ink:#ede9e2; --muted:#958f84; --faint:#5e5a52;
+  --frozen:#8fb3d9; --partial:#e3b341; --full:#ff6a3d; --sim:#e3b341;
+  --serif:"Instrument Serif",Georgia,serif; --sans:"IBM Plex Sans",-apple-system,Arial,sans-serif; --mono:"IBM Plex Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+button{font:inherit;color:inherit}
+.hidden{display:none!important}
+.sim{font:500 10.5px var(--mono);letter-spacing:.08em;color:var(--sim);border:1px dashed var(--sim);padding:2px 7px;border-radius:2px;white-space:nowrap}
+/* top bar */
+.top{display:flex;align-items:center;gap:28px;padding:14px 28px;border-bottom:1px solid var(--rule)}
+.brand{font:400 26px/1 var(--serif);letter-spacing:.01em}.brand small{font:400 12px var(--sans);color:var(--muted);margin-left:10px;letter-spacing:0}
+nav{display:flex;gap:2px;margin-left:auto}
+nav button{background:none;border:0;padding:8px 12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
+nav button.on{color:var(--ink);border-color:var(--ink)}
+/* analyze layout */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) minmax(0,1.1fr)}
+.col{padding:22px 28px 30px;border-right:1px solid var(--rule);min-width:0}.col:last-child{border-right:0}
+.step{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+.step .n{font:500 12px var(--mono);color:var(--faint)}.step h2{font:400 26px/1 var(--serif);margin:0}.step .sim{margin-left:auto}
+.lbl{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+/* input */
+.eye{position:relative;width:100%;max-width:360px;aspect-ratio:1;margin:0 auto}
+.eye canvas{position:absolute;inset:0;width:100%;height:100%}
+.empty-eye{position:absolute;inset:0;border:1px dashed var(--faint);border-radius:50%;display:grid;place-items:center;color:var(--muted);text-align:center;font-size:13px;padding:30px}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.thumb{background:none;border:1px solid var(--rule);border-radius:4px;padding:6px 4px 4px;cursor:pointer;text-align:center;font-size:11.5px;color:var(--muted)}
+.thumb canvas{width:100%;aspect-ratio:1;display:block;border-radius:50%}
+.thumb.on{border-color:var(--ink);color:var(--ink)}
+.thumb .plus{width:100%;aspect-ratio:1;border:1px dashed var(--faint);border-radius:50%;display:grid;place-items:center;font-size:22px;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.seg button{flex:1 1 auto;background:none;border:0;border-right:1px solid var(--rule);padding:8px 10px;cursor:pointer;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.seg button:last-child{border-right:0}.seg button.on{background:var(--ink);color:var(--bg)}
+.range{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-top:10px;font:12px var(--mono);color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--ink)}
+/* prediction */
+.verdict{font:400 44px/1.02 var(--serif);margin:2px 0 6px}
+.vsub{color:var(--muted);font-size:13px}.vsub b{color:var(--ink);font-weight:500}
+.ref{display:inline-block;font:500 11px var(--mono);letter-spacing:.06em;padding:3px 8px;border-radius:2px;margin-top:10px}
+.ref.yes{background:var(--full);color:#140a05}.ref.no{border:1px solid var(--faint);color:var(--muted)}
+.strip-head,.strip{display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:3px;align-items:center}
+.strip-head span{font:500 10.5px var(--mono);color:var(--faint);text-align:center;letter-spacing:.03em}
+.strip{margin-top:6px}
+.sname{font-size:12.5px;line-height:1.2}.sname i{display:block;font:normal 10.5px var(--mono);color:var(--faint)}
+.cell{height:38px;border-radius:2px;display:grid;place-items:center;font:500 12px var(--mono);color:var(--ink);transition:background .3s}
+.cell.top{outline:2px solid var(--ink);outline-offset:-2px}
+.flag{font:500 11px var(--mono);color:var(--full);margin:4px 0 0 99px;min-height:15px}
+.note{font-size:12.5px;color:var(--muted);margin-top:14px;line-height:1.5}.note b{color:var(--ink);font-weight:500}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+/* interpretation */
+.cams{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.cam{background:none;border:1px solid var(--rule);border-radius:4px;padding:6px;cursor:pointer;text-align:left}
+.cam.on{border-color:var(--ink)}
+.cam .eye{max-width:none}
+.cam .cap{display:flex;justify-content:space-between;font-size:11.5px;margin-top:6px;color:var(--muted)}.cam .cap b{font:500 12px var(--mono);color:var(--ink)}
+.big{max-width:300px}
+.signs{width:100%;border-collapse:collapse;font-size:13px}
+.signs td{padding:7px 0;border-bottom:1px solid var(--rule)}.signs td:last-child{text-align:right;font-family:var(--mono);font-size:12.5px}
+.placeholder{color:var(--muted);font-size:13px;padding:40px 0;text-align:center}
+.busy{display:flex;gap:10px;align-items:center;justify-content:center;color:var(--muted);font:12px var(--mono);padding:60px 0}
+.spin{width:14px;height:14px;border:2px solid var(--rule);border-top-color:var(--ink);border-radius:50%;animation:s .7s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+/* compare */
+.cmp{padding:22px 28px 30px}
+.winners{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-bottom:22px}
+.win{padding:16px 18px;border-right:1px solid var(--rule)}.win:last-child{border-right:0}
+.win .q{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.win .a{font:400 30px/1.1 var(--serif);margin:6px 0 4px}.win .d{font-size:12.5px;color:var(--muted)}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+table.res{width:100%;border-collapse:collapse;font-size:12.5px}
+table.res th{font:500 10.5px var(--mono);letter-spacing:.06em;color:var(--faint);text-align:right;padding:6px;border-bottom:1px solid var(--rule)}
+table.res td{padding:6px;text-align:right;border-bottom:1px solid var(--rule);font-family:var(--mono)}
+table.res th:nth-child(-n+2),table.res td:nth-child(-n+2){text-align:left;font-family:var(--sans)}
+table.res tr.best td{color:var(--full)}
+footer{padding:14px 28px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--faint)}
+@media (max-width:980px){.flow,.cmp-grid,.winners{grid-template-columns:1fr}.col{border-right:0;border-bottom:1px solid var(--rule);padding:18px 16px}.win{border-right:0;border-bottom:1px solid var(--rule)}.top{flex-wrap:wrap;gap:10px;padding:12px 16px}.cmp{padding:18px 16px}.brand small{display:block;margin:4px 0 0}.strip-head,.strip{grid-template-columns:78px repeat(5,minmax(0,1fr))}.flag{margin-left:81px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">RetinaLens<small>Diabetic retinopathy grading · transfer learning</small></div>
+  <nav><button class="on" data-view="analyze">Analyze an image</button><button data-view="compare">Compare models</button></nav>
+  <span class="sim">PROTOTYPE · SIMULATED OUTPUT</span>
+</header>
+
+<main id="analyze" class="flow">
+  <!-- 01 INPUT -->
+  <section class="col">
+    <div class="step"><span class="n">01</span><h2>Input</h2></div>
+    <div class="eye" id="inEye"><div class="empty-eye" id="inEmpty">Pick a fundus photo below</div><canvas id="inCv" width="560" height="560" class="hidden"></canvas></div>
+    <div class="lbl">Fundus photo</div>
+    <div class="thumbs" id="thumbs"></div>
+    <input type="file" id="file" accept="image/*" class="hidden">
+    <div class="lbl">Backbone (ImageNet-pretrained)</div>
+    <div class="seg" id="models"></div>
+    <div class="lbl">Capture quality</div>
+    <div class="seg" id="corrs"></div>
+    <div class="range"><span>clean</span><input type="range" id="sev" min="0" max="4" value="0" aria-label="Degradation severity"><span>poor</span></div>
+  </section>
+
+  <!-- 02 PREDICTION -->
+  <section class="col">
+    <div class="step"><span class="n">02</span><h2>Prediction</h2><span class="sim">SIMULATED</span></div>
+    <div id="predEmpty" class="placeholder">The grade appears here.</div>
+    <div id="predBusy" class="busy hidden"><div class="spin"></div><span>running 3 checkpoints</span></div>
+    <div id="pred" class="hidden">
+      <div class="verdict" id="verdict"></div>
+      <div class="vsub" id="vsub"></div>
+      <span class="ref" id="ref"></span>
+      <div class="lbl" style="margin-top:24px">Same backbone, three transfer strategies</div>
+      <div class="strip-head"><span></span><span>No DR</span><span>Mild</span><span>Moderate</span><span>Severe</span><span>Prolif.</span></div>
+      <div id="strips"></div>
+      <div class="note" id="predNote"></div>
+    </div>
+  </section>
+
+  <!-- 03 WHY -->
+  <section class="col">
+    <div class="step"><span class="n">03</span><h2>Why</h2><span class="sim">SIMULATED</span></div>
+    <div id="whyEmpty" class="placeholder">Grad-CAM maps appear here.</div>
+    <div id="whyBusy" class="busy hidden"><div class="spin"></div><span>computing Grad-CAM</span></div>
+    <div id="why" class="hidden">
+      <div class="cams" id="cams"></div>
+      <div class="eye big" id="bigEye"><canvas width="560" height="560"></canvas><canvas width="560" height="560"></canvas><canvas width="560" height="560"></canvas></div>
+      <div class="range"><span>image</span><input type="range" id="opa" min="0" max="100" value="65" aria-label="Heatmap opacity"><span>heatmap</span></div>
+      <div class="lbl">Signs inside the hot zones</div>
+      <table class="signs" id="signs"></table>
+      <div class="note" id="whyNote"></div>
+    </div>
+  </section>
+</main>
+
+<main id="compare" class="cmp hidden">
+  <div class="step"><span class="n">5-fold CV · held-out test set</span><span class="sim">SIMULATED METRICS</span></div>
+  <div class="winners" id="winners"></div>
+  <div class="cmp-grid">
+    <div><div class="lbl">Accuracy vs. size</div><svg id="scatter" viewBox="0 0 520 340" width="100%"></svg></div>
+    <div><div class="lbl">All 13 configurations</div><table class="res" id="tbl"></table></div>
+  </div>
+</main>
+
+<footer>Course project prototype (Master ISI, FSSM). Not a medical device. Sample eyes are drawn, not real patients; every number is a placeholder until the Kaggle runs finish.</footer>
+
+<script>
+// ===== mock configuration (SIMULATED) =====
+const CLASSES=['No DR','Mild','Moderate','Severe','Proliferative'];
+const STRATS=[
+  {id:'fe', name:'Frozen',  long:'Feature extraction', color:'--frozen', k:1.25,focus:.35,rob:.40},
+  {id:'pft',name:'Partial', long:'Partial fine-tuning',color:'--partial',k:2.2, focus:.70,rob:.72},
+  {id:'ft', name:'Full',    long:'Full fine-tuning',   color:'--full',   k:3.0, focus:.95,rob:.85}];
+const MODELS={
+  mobilenetv4:{name:'MobileNetV4',params:3.8,  trainable:{fe:.006,pft:1.1,ft:3.8},  acc:{fe:.71,pft:.80,ft:.83},time:{fe:.2,pft:.4,ft:.6},drop:9, rob:.85},
+  densenet201:{name:'DenseNet-201',params:18.1,trainable:{fe:.01,pft:6.2,ft:18.1},  acc:{fe:.74,pft:.84,ft:.86},time:{fe:.5,pft:1.1,ft:1.6},drop:5,rob:1},
+  vgg19:      {name:'VGG19',      params:139.6,trainable:{fe:.02,pft:30.2,ft:139.6},acc:{fe:.70,pft:.79,ft:.81},time:{fe:.6,pft:1.4,ft:2.3},drop:11,rob:.75},
+  vitb16:     {name:'ViT-B/16',   params:85.8, trainable:{fe:.004,pft:14.2,ft:85.8},acc:{fe:.72,pft:.83,ft:.85},time:{fe:.7,pft:1.8,ft:2.9},drop:4,rob:1.05}};
+const SCRATCH={name:'CNN from scratch',params:1.2,acc:.68,time:.4,drop:14};
+const CORRS=[{id:'blur',name:'Blur'},{id:'dark',name:'Under-exposed'},{id:'noise',name:'Sensor noise'}];
+const SAMPLES=[{g:0,seed:11,name:'Eye A'},{g:2,seed:23,name:'Eye B'},{g:4,seed:5,name:'Eye C'}];
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmtP=m=>m<.1?Math.round(m*1000)+'K':m.toFixed(1)+'M';
+let S={pick:null,upload:null,model:'densenet201',corr:'blur',sev:0,view:'ft',opa:.65,lesions:[],timer:null};
+
+// ===== synthetic fundus =====
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+function lesionsFor(g,seed){const r=rng(seed+7),L=[],n=[0,4,10,18,26][g];
+  for(let i=0;i<n;i++){const a=r()*Math.PI*2,d=.15+r()*.6;L.push({x:.5+Math.cos(a)*d*.5,y:.5+Math.sin(a)*d*.5,t:r()<.5?'ex':'hem',s:.008+r()*.018})}
+  if(g===4)L.push({x:.66,y:.42,t:'neo',s:.07});return L}
+function clip(c,W){c.globalCompositeOperation='destination-in';c.beginPath();c.arc(W/2,W/2,W*.49,0,7);c.fill();c.globalCompositeOperation='source-over'}
+function paintFundus(c,W,g,seed){
+  const gr=c.createRadialGradient(W*.5,W*.5,W*.05,W*.5,W*.5,W*.5);gr.addColorStop(0,'#e0702f');gr.addColorStop(.7,'#b8461c');gr.addColorStop(1,'#3a0d04');
+  c.fillStyle=gr;c.beginPath();c.arc(W/2,W/2,W*.49,0,7);c.fill();
+  const od=c.createRadialGradient(W*.3,W*.47,2,W*.3,W*.47,W*.09);od.addColorStop(0,'#fff3c4');od.addColorStop(1,'rgba(255,220,140,0)');c.fillStyle=od;c.beginPath();c.arc(W*.3,W*.47,W*.09,0,7);c.fill();
+  c.fillStyle='rgba(90,20,5,.55)';c.beginPath();c.arc(W*.6,W*.5,W*.05,0,7);c.fill();
+  const r=rng(seed);c.strokeStyle='rgba(120,15,10,.75)';c.lineCap='round';
+  for(let i=0;i<9;i++){c.lineWidth=W*(.006+r()*.006);c.beginPath();c.moveTo(W*.3,W*.47);const a=(i/9)*Math.PI*2+r()*.3;
+    c.bezierCurveTo(W*(.3+Math.cos(a)*.15),W*(.47+Math.sin(a)*.25),W*(.5+Math.cos(a)*.3),W*(.5+Math.sin(a)*.2),W*(.5+Math.cos(a)*.42),W*(.5+Math.sin(a)*.38));c.stroke()}
+  lesionsFor(g,seed).forEach(l=>{if(l.t==='neo'){c.strokeStyle='rgba(150,10,10,.9)';c.lineWidth=W*.003;for(let i=0;i<14;i++){c.beginPath();c.moveTo(W*l.x,W*l.y);c.quadraticCurveTo(W*(l.x+(r()-.5)*.1),W*(l.y+(r()-.5)*.1),W*(l.x+(r()-.5)*.12),W*(l.y+(r()-.5)*.12));c.stroke()}return}
+    c.fillStyle=l.t==='ex'?'rgba(255,236,120,.95)':'rgba(110,0,0,.9)';c.beginPath();c.arc(W*l.x,W*l.y,W*l.s,0,7);c.fill()})}
+// draws the current input (sample or upload) with the chosen degradation applied
+function drawInput(cv,degrade=true){
+  const W=cv.width,c=cv.getContext('2d'),src=document.createElement('canvas');src.width=src.height=W;const sc=src.getContext('2d');
+  if(S.upload){const im=S.upload,s=Math.min(im.width,im.height);sc.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,W,W)}
+  else{const sm=SAMPLES[S.pick];paintFundus(sc,W,sm.g,sm.seed)}
+  c.clearRect(0,0,W,W);const v=degrade?S.sev:0;
+  c.filter=v&&S.corr==='blur'?`blur(${v*W/170}px)`:v&&S.corr==='dark'?`brightness(${1-v*.18})`:'none';c.drawImage(src,0,0);c.filter='none';
+  if(v&&S.corr==='noise'){const d=c.getImageData(0,0,W,W),r=rng(3);for(let i=0;i<d.data.length;i+=4){const n=(r()-.5)*v*70;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n}c.putImageData(d,0,0)}
+  clip(c,W)}
+function jet(v){const f=x=>Math.min(1,Math.max(0,1.5-Math.abs(4*v-x)))*255;return[f(3),f(2),f(1)]}
+// simulated Grad-CAM: low focus = diffuse + off-target (optic disc, background); high focus = tight on lesions
+function camHeat(focus,seed){const N=64,h=new Float32Array(N*N),r=rng(seed);
+  const pts=S.lesions.map(l=>({x:l.x,y:l.y,w:l.t==='neo'?1.4:1,s:.03+(1-focus)*.08}))
+    .concat([{x:.3,y:.47,w:2.2*(1-focus),s:.12},{x:.5+(r()-.5)*.6,y:.5+(r()-.5)*.6,w:1.5*(1-focus),s:.18}]);
+  let mx=1e-6;for(let j=0;j<N;j++)for(let i=0;i<N;i++){let v=0;pts.forEach(p=>v+=p.w*Math.exp(-((i/N-p.x)**2+(j/N-p.y)**2)/(2*p.s*p.s)));h[j*N+i]=v;mx=Math.max(mx,v)}
+  for(let k=0;k<N*N;k++)h[k]/=mx;return h}
+function drawHeat(cv,h){const N=64,W=cv.width,c=cv.getContext('2d'),im=c.createImageData(N,N);
+  for(let k=0;k<N*N;k++){const v=h[k],[R,G,B]=jet(v);im.data.set([R,G,B,v>.15?170*v+50:0],k*4)}
+  const t=document.createElement('canvas');t.width=t.height=N;t.getContext('2d').putImageData(im,0,0);c.clearRect(0,0,W,W);c.drawImage(t,0,0,W,W);clip(c,W)}
+const heatAt=(h,x,y)=>h[Math.min(63,Math.floor(y*64))*64+Math.min(63,Math.floor(x*64))];
+function lesionShare(h){let tot=0,on=0;for(let j=0;j<64;j++)for(let i=0;i<64;i++){const v=h[j*64+i];tot+=v;if(S.lesions.some(l=>(i/64-l.x)**2+(j/64-l.y)**2<(.045)**2))on+=v}return tot?on/tot:0}
+
+// ===== simulated inference =====
+function predict(g,st,sev){const m=MODELS[S.model],d=sev/4,frag=Math.max(0,1-st.rob*m.rob);
+  const k=st.k*(m.acc[st.id]/.8)*(1-d*frag*.8);
+  let c=g-({blur:2.4,dark:1.9,noise:1.6}[S.corr])*d*frag;if(st.id==='fe'&&g>=2)c-=.6;
+  const lg=CLASSES.map((_,i)=>-Math.abs(i-c)*k),mx=Math.max(...lg),e=lg.map(l=>Math.exp(l-mx)),s=e.reduce((a,b)=>a+b);return e.map(x=>x/s)}
+const argmax=a=>a.indexOf(Math.max(...a));
+const trueGrade=()=>S.upload?2:SAMPLES[S.pick].g;
+
+// ===== UI =====
+const $=id=>document.getElementById(id);
+function buildInputs(){
+  $('thumbs').innerHTML='';
+  SAMPLES.forEach((s,i)=>{const b=document.createElement('button');b.className='thumb'+(S.pick===i&&!S.upload?' on':'');const cv=document.createElement('canvas');cv.width=cv.height=140;
+    const c=cv.getContext('2d');paintFundus(c,140,s.g,s.seed);clip(c,140);b.append(cv,document.createTextNode(s.name));b.onclick=()=>{S.pick=i;S.upload=null;$('file').value='';buildInputs();run(true)};$('thumbs').append(b)});
+  const up=document.createElement('button');up.className='thumb'+(S.upload?' on':'');up.innerHTML='<div class="plus">+</div>Upload';up.onclick=()=>$('file').click();$('thumbs').append(up);
+  $('models').innerHTML=Object.entries(MODELS).map(([k,m])=>`<button data-k="${k}" class="${k===S.model?'on':''}">${m.name}</button>`).join('');
+  $('corrs').innerHTML=CORRS.map(c=>`<button data-c="${c.id}" class="${c.id===S.corr?'on':''}">${c.name}</button>`).join('')}
+function hasImage(){return S.upload||S.pick!==null}
+function run(slow){
+  if(!hasImage())return;
+  S.lesions=S.upload?lesionsFor(2,99):lesionsFor(trueGrade(),SAMPLES[S.pick].seed);
+  $('inEmpty').classList.add('hidden');$('inCv').classList.remove('hidden');drawInput($('inCv'));
+  clearTimeout(S.timer);
+  if(slow){['pred','why','predEmpty','whyEmpty'].forEach(id=>$(id).classList.add('hidden'));$('predBusy').classList.remove('hidden');$('whyBusy').classList.remove('hidden');
+    S.timer=setTimeout(()=>{$('predBusy').classList.add('hidden');$('whyBusy').classList.add('hidden');render()},650)}
+  else render()}
+function render(){
+  ['predEmpty','whyEmpty'].forEach(id=>$(id).classList.add('hidden'));['pred','why'].forEach(id=>$(id).classList.remove('hidden'));
+  const m=MODELS[S.model],g=trueGrade();
+  const P=STRATS.map(st=>predict(g,st,S.sev)),P0=STRATS.map(st=>predict(g,st,0)),T=P.map(argmax),T0=P0.map(argmax);
+  // 02 prediction — headline uses the full fine-tuning checkpoint
+  $('verdict').textContent=CLASSES[T[2]]+(T[2]?' DR':'');
+  $('vsub').innerHTML=`<b>${Math.round(P[2][T[2]]*100)}%</b> · ${m.name}, full fine-tuning`;
+  $('ref').className='ref '+(T[2]>=2?'yes':'no');$('ref').textContent=T[2]>=2?'REFER TO OPHTHALMOLOGIST':'ROUTINE RESCREEN';
+  $('strips').innerHTML=STRATS.map((st,i)=>{const col=css(st.color),flip=S.sev>0&&T[i]!==T0[i];
+    return `<div class="strip"><div class="sname"><span class="dot" style="background:${col}"></span>${st.name}<i>${fmtP(m.trainable[st.id])} trained</i></div>`+
+      P[i].map((p,j)=>`<div class="cell ${j===T[i]?'top':''}" style="background:color-mix(in srgb, ${col} ${Math.max(5,Math.round(p*100))}%, #151513)">${Math.round(p*100)}</div>`).join('')+
+      `</div><div class="flag">${flip?`changed from ${CLASSES[T0[i]]} under ${CORRS.find(c=>c.id===S.corr).name.toLowerCase()}`:''}</div>`}).join('');
+  const agree=T.every(t=>t===T[0]);
+  $('predNote').innerHTML=(agree?'All three strategies agree. ':`Frozen features read this eye as <b>${CLASSES[T[0]]}</b>; fine-tuning moves it to <b>${CLASSES[T[2]]}</b>. `)+
+    `Unfreezing costs ${fmtP(m.trainable.fe)} → ${m.params}M trainable parameters and ${m.time.fe} h → ${m.time.ft} h per fold.`+(S.sev?'':' <b>Try lowering capture quality</b> to see which strategy breaks first.');
+  // 03 why — Grad-CAM per strategy
+  const H=STRATS.map((st,i)=>camHeat(st.focus*(1-S.sev*.1),(S.upload?99:SAMPLES[S.pick].seed)+i)),share=H.map(lesionShare);
+  const cams=$('cams');cams.innerHTML='';
+  STRATS.forEach((st,i)=>{const b=document.createElement('button');b.className='cam'+(st.id===S.view?' on':'');
+    b.innerHTML=`<div class="eye"><canvas width="220" height="220"></canvas><canvas width="220" height="220"></canvas></div><div class="cap"><span><span class="dot" style="background:${css(st.color)}"></span>${st.name}</span><b>${Math.round(share[i]*100)}%</b></div>`;
+    const [a,h]=b.querySelectorAll('canvas');drawInput(a);drawHeat(h,H[i]);h.style.opacity=.7;b.onclick=()=>{S.view=st.id;render()};cams.append(b)});
+  const vi=STRATS.findIndex(s=>s.id===S.view),[base,heat,marks]=$('bigEye').querySelectorAll('canvas');
+  drawInput(base);drawHeat(heat,H[vi]);heat.style.opacity=S.opa;
+  // ring every lesion the selected map lights up (heat > 4x the map average)
+  const meanHeat=H[vi].reduce((a,b)=>a+b)/H[vi].length;const mc=marks.getContext('2d'),W=marks.width;mc.clearRect(0,0,W,W);mc.lineWidth=2;
+  const kinds={ex:{n:'Hard exudates',c:'#ffe066'},hem:{n:'Haemorrhages',c:'#ff4d4d'},neo:{n:'Neovascularisation',c:'#ff9de2'}},cnt={};
+  S.lesions.forEach(l=>{const hot=heatAt(H[vi],l.x,l.y)>4*meanHeat;cnt[l.t]=cnt[l.t]||{all:0,hot:0};cnt[l.t].all++;if(hot){cnt[l.t].hot++;mc.strokeStyle=kinds[l.t].c;mc.beginPath();mc.arc(W*l.x,W*l.y,W*Math.max(l.s*1.8,.022),0,7);mc.stroke()}});
+  $('signs').innerHTML=Object.keys(cnt).length?Object.entries(cnt).map(([t,v])=>`<tr><td><span class="dot" style="background:${kinds[t].c}"></span>${kinds[t].n}</td><td>${v.hot} / ${v.all} found</td></tr>`).join(''):
+    `<tr><td>No lesions</td><td>—</td></tr>`;
+  $('whyNote').innerHTML=(g===0&&!S.upload?'Healthy eye: the maps spread over the optic disc and vessels because there is no lesion to find. ':
+    `Share of attention on lesions: <b>${STRATS.map((s,i)=>s.name+' '+Math.round(share[i]*100)+'%').join(' → ')}</b>. Fine-tuning moves the model's focus from the optic disc onto the lesions. `)+
+    (S.upload?'<b>Your upload:</b> lesion positions are simulated, not detected.':'')}
+// ===== compare view =====
+function renderCompare(){
+  const rows=[{n:SCRATCH.name,s:'trained from scratch',acc:SCRATCH.acc,p:SCRATCH.params,t:SCRATCH.time,drop:SCRATCH.drop,key:'scratch'}];
+  Object.entries(MODELS).forEach(([k,m])=>STRATS.forEach(st=>rows.push({n:m.name,s:st.long,sid:st.id,acc:m.acc[st.id],p:m.params,t:m.time[st.id],drop:Math.round(m.drop*(st.id==='fe'?1.6:st.id==='pft'?1.15:1)),key:k})));
+  const tl=rows.filter(r=>r.key!=='scratch'),best=rows.reduce((a,b)=>b.acc>a.acc?b:a),light=tl.reduce((a,b)=>b.p<a.p||(b.p===a.p&&b.acc>a.acc)?b:a),rob=tl.reduce((a,b)=>b.drop<a.drop?b:a);
+  $('winners').innerHTML=[['Most accurate',best,`${Math.round(best.acc*100)}% test accuracy`],['Lightest',light,`${light.p}M parameters, ${Math.round(light.acc*100)}% accuracy`],['Most robust',rob,`loses ${rob.drop} pts on degraded photos`]]
+    .map(([q,r,d])=>`<div class="win"><div class="q">${q}</div><div class="a">${r.n}</div><div class="d">${r.s} · ${d}</div></div>`).join('');
+  $('tbl').innerHTML='<tr><th>MODEL</th><th>STRATEGY</th><th>ACC</th><th>F1</th><th>AUC</th><th>PARAMS</th><th>DEGRADED Δ</th></tr>'+
+    rows.map(r=>`<tr class="${r===best?'best':''}"><td>${r.n}</td><td>${r.s}</td><td>${Math.round(r.acc*100)}%</td><td>${(r.acc-.03).toFixed(2)}</td><td>${Math.min(.99,r.acc+.1).toFixed(2)}</td><td>${r.p}M</td><td>−${r.drop}</td></tr>`).join('');
+  const X=p=>60+Math.log10(p)/2.3*430,Y=a=>290-(a-.62)/.28*260,fill=r=>r.key==='scratch'?css('--faint'):css(STRATS.find(s=>s.id===r.sid).color),ink=css('--muted');
+  let s=`<line x1="60" y1="290" x2="500" y2="290" stroke="${css('--rule')}"/>`;
+  [1,10,100].forEach(p=>s+=`<text x="${X(p)}" y="306" font-size="11" text-anchor="middle" fill="${ink}" font-family="IBM Plex Mono">${p}M</text>`);
+  [.65,.75,.85].forEach(a=>s+=`<line x1="60" x2="500" y1="${Y(a)}" y2="${Y(a)}" stroke="${css('--rule')}" stroke-dasharray="2 4"/><text x="52" y="${Y(a)+4}" font-size="11" text-anchor="end" fill="${ink}" font-family="IBM Plex Mono">${a*100}%</text>`);
+  s+=`<text x="280" y="328" font-size="11" text-anchor="middle" fill="${ink}">parameters (log scale)</text>`;
+  Object.entries(MODELS).forEach(([k,m])=>{const pts=STRATS.map((st,i)=>[X(m.params)+(i-1)*9,Y(m.acc[st.id])]);
+    s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${css('--faint')}" stroke-width="1"/><text x="${X(m.params)+16}" y="${Y(m.acc.ft)+4}" font-size="12" fill="${css('--ink')}">${m.name}</text>`});
+  rows.forEach(r=>{const i=r.sid?STRATS.findIndex(s=>s.id===r.sid):1;s+=`<circle cx="${X(r.p)+(i-1)*9}" cy="${Y(r.acc)}" r="5.5" fill="${fill(r)}"><title>${r.n} · ${r.s}: ${Math.round(r.acc*100)}%</title></circle>`});
+  s+=`<text x="${X(1.2)+10}" y="${Y(SCRATCH.acc)+4}" font-size="12" fill="${ink}">from scratch</text>`;
+  let lx=330;STRATS.forEach(st=>{s+=`<circle cx="${lx}" cy="240" r="5" fill="${css(st.color)}"/><text x="${lx+9}" y="244" font-size="11.5" fill="${ink}">${st.name}</text>`;lx+=62});
+  $('scatter').innerHTML=s}
+// ===== wiring =====
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();
+  im.onload=()=>{S.upload=im;S.pick=null;buildInputs();run(true)};im.onerror=()=>{alert('That file is not a readable image. Please pick a JPG or PNG.');$('file').value=''};im.src=URL.createObjectURL(f)};
+$('models').onclick=e=>{const k=e.target.dataset.k;if(!k)return;S.model=k;buildInputs();run(true)};
+$('corrs').onclick=e=>{const c=e.target.dataset.c;if(!c)return;S.corr=c;buildInputs();run(false)};
+$('sev').oninput=e=>{S.sev=+e.target.value;run(false)};
+$('opa').oninput=e=>{S.opa=e.target.value/100;$('bigEye').querySelectorAll('canvas')[1].style.opacity=S.opa};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  const c=b.dataset.view==='compare';$('compare').classList.toggle('hidden',!c);$('analyze').classList.toggle('hidden',c);if(c)renderCompare()});
+buildInputs();
+</script>
+</body>
+</html>

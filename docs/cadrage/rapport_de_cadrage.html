@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport de cadrage</title>
+<style>
+  @page { size: A4; margin: 18mm 17mm 18mm 17mm;
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 8.5pt "Helvetica Neue", Arial, sans-serif; color: #6b7280; }
+    @bottom-left { content: "Rapport de cadrage · dr-transfer-learning"; font: 8.5pt "Helvetica Neue", Arial, sans-serif; color: #6b7280; }
+  }
+  @page :first { margin: 0; @bottom-right { content: none; } @bottom-left { content: none; } }
+  :root { --ink:#111827; --muted:#4b5563; --soft:#6b7280; --line:#e5e7eb; --brand:#0f766e; --brand2:#134e4a; --accent:#ea580c; --req:#1d4ed8; --prop:#0f766e; --warn:#b45309; --bg:#f8fafc; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin:0; font: 10pt/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); background:#fff; }
+  h1, h2, h3, h4 { font-weight: 700; color: var(--brand2); line-height:1.25; }
+  h1 { font-size: 19pt; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2.5px solid var(--brand); break-after: avoid; }
+  h2 { font-size: 13pt; margin: 18px 0 6px; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12px 0 4px; break-after: avoid; }
+  p { margin: 5px 0 7px; text-align: justify; }
+  ul, ol { margin: 4px 0 8px; padding-left: 20px; } li { margin: 2px 0; }
+  section.chap { break-before: page; }
+  section.flow > h1 { margin-top: 22px; }
+  code, .mono { font-family: Menlo, "SF Mono", monospace; font-size: 8.8pt; background:#f1f5f9; padding: 0 3px; border-radius: 3px; }
+  table { width:100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 9pt; break-inside: auto; }
+  th, td { border: 1px solid var(--line); padding: 4px 7px; vertical-align: top; text-align:left; }
+  th { background: #f0fdfa; color: var(--brand2); font-weight:700; }
+  tr { break-inside: avoid; }
+  .tag { display:inline-block; font-size: 7.5pt; font-weight: 700; padding: 1px 6px; border-radius: 8px; letter-spacing:.3px; vertical-align: 1px; white-space: nowrap; }
+  .req { background:#dbeafe; color: var(--req); }
+  .prop { background:#ccfbf1; color: var(--prop); }
+  .hyp { background:#fef3c7; color: var(--warn); }
+  .mock { background:#ffedd5; color: #c2410c; }
+  .box { border:1px solid var(--line); border-left: 4px solid var(--brand); background: var(--bg); padding: 8px 12px; border-radius: 4px; margin: 8px 0 10px; break-inside: avoid; }
+  .box.warn { border-left-color: var(--warn); background:#fffbeb; }
+  .box.req { border-left-color: var(--req); background:#eff6ff; }
+  .box h4 { margin: 0 0 4px; font-size: 10pt; }
+  .legend { font-size: 8.8pt; color: var(--muted); }
+  figure { margin: 8px 0 12px; break-inside: avoid; text-align:center; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 4px; }
+  figcaption { font-size: 8.5pt; color: var(--soft); margin-top: 4px; }
+  .step { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 10px; break-inside: avoid; overflow:hidden; }
+  .step .hd { display:flex; align-items:center; gap:10px; background: var(--brand2); color:#fff; padding: 5px 10px; }
+  .step .num { font-weight: 800; font-size: 11pt; background:#fff; color: var(--brand2); border-radius: 50%; width: 22px; height: 22px; text-align:center; line-height:22px; }
+  .step .ttl { font-weight: 700; font-size: 10.5pt; flex:1; }
+  .step .who { font-size: 8.5pt; opacity:.9; }
+  .step table { margin:0; border: none; }
+  .step td { border:none; border-top: 1px solid var(--line); }
+  .step td.k { width: 22%; font-weight: 700; color: var(--brand2); background: #f8fafc; }
+  .toc { columns: 1; font-size: 10pt; }
+  .toc div { display:flex; border-bottom: 1px dotted #cbd5e1; padding: 3px 0; }
+  .toc div span:first-child { flex:1; }
+  pre.tree { font: 8.6pt/1.45 Menlo, monospace; background: #0f172a; color:#e2e8f0; padding: 10px 14px; border-radius: 6px; break-inside: avoid; white-space: pre; }
+  pre.tree .c { color:#94a3b8; }
+  .two { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Cover */
+  .cover { height: 297mm; width: 210mm; position: relative; background: linear-gradient(160deg, #134e4a 0%, #0f766e 55%, #115e59 100%); color: #fff; padding: 26mm 22mm; overflow:hidden; }
+  .cover .eyeball { position:absolute; right:-55mm; top: 128mm; width: 150mm; height:150mm; border-radius:50%; background: radial-gradient(circle at 45% 50%, #fbbf24 0%, #ea580c 35%, #9a3412 62%, rgba(124,45,18,0) 72%); opacity:.55; }
+  .cover .disc { position:absolute; right: 12mm; top: 183mm; width: 22mm; height: 22mm; border-radius: 50%; background: #fde68a; opacity:.8; }
+  .cover .inst { font-size: 10pt; opacity: .9; line-height:1.45; }
+  .cover .kicker { margin-top: 36mm; font-size: 11pt; letter-spacing: 3px; text-transform: uppercase; color:#99f6e4; font-weight:700; }
+  .cover h1.t { color:#fff; border:none; font-size: 26pt; line-height:1.15; margin: 6mm 0 4mm; max-width: 140mm; padding:0; }
+  .cover .sub { font-size: 12.5pt; max-width: 130mm; opacity: .95; }
+  .cover .team { position:absolute; left: 22mm; bottom: 34mm; right: 22mm; }
+  .cover .team h3 { color:#99f6e4; font-size: 10pt; letter-spacing: 2px; text-transform:uppercase; margin:0 0 3mm; }
+  .cover .names { display:grid; grid-template-columns: 1fr 1fr; gap: 2mm 10mm; font-size: 13pt; font-weight: 600; }
+  .cover .names small { display:block; font-weight: 400; font-size: 9pt; opacity:.8; }
+  .cover .foot { position:absolute; left: 22mm; bottom: 16mm; right:22mm; font-size: 9pt; opacity: .85; display:flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,.3); padding-top: 3mm; }
+</style>
+</head>
+<body>
+
+<!-- ============ COUVERTURE ============ -->
+<div class="cover">
+  <div class="eyeball"></div><div class="disc"></div>
+  <div class="inst">Université Cadi Ayyad · Faculté des Sciences Semlalia, Marrakech<br>Département d'Informatique · Master ISI, S3 · Module Deep Learning (Transfer Learning)<br>Encadrant : Pr. Mustapha AATILA</div>
+  <div class="kicker">Rapport de cadrage · Projet 6</div>
+  <h1 class="t">Multi-Class Diabetic Retinopathy Classification from Color Fundus Photography Using Deep Transfer Learning</h1>
+  <div class="sub">Comparaison de l'extraction de caractéristiques, du fine-tuning partiel et du fine-tuning complet sur MobileNetV4, DenseNet-201, VGG19, ViT-Base/16 et un CNN entraîné de zéro, avec interprétation Grad-CAM.</div>
+  <div class="team">
+    <h3>Équipe</h3>
+    <div class="names">
+      <div>ALAA EDDINE MOUATE<small>Chef de projet · propriétaire du dépôt GitHub</small></div>
+      <div>Abdelati<small>Données · prétraitement · augmentation</small></div>
+      <div>Ikram<small>Évaluation · métriques · analyse comparative</small></div>
+      <div>Youssef<small>Interprétabilité Grad-CAM · démo</small></div>
+    </div>
+  </div>
+  <div class="foot"><span>Année universitaire 2025-2026</span><span>Dépôt : dr-transfer-learning</span><span>Version 1.0 · 11 novembre 2026</span></div>
+</div>
+
+<!-- ============ SOMMAIRE ============ -->
+<section>
+  <h1>Sommaire</h1>
+  <div class="toc">
+    <div><span>1. Objet du document et conventions</span><span>2</span></div>
+    <div><span>2. Analyse du sujet : exigences extraites du PDF</span><span>3</span></div>
+    <div><span>3. Idée et solution proposée</span><span>4</span></div>
+    <div><span>4. Données, prétraitement et augmentation</span><span>5</span></div>
+    <div><span>5. Modèles, stratégies et protocole d'entraînement</span><span>6</span></div>
+    <div><span>6. Métriques d'évaluation et interprétabilité</span><span>7</span></div>
+    <div><span>7. Structure du dépôt et outillage</span><span>9</span></div>
+    <div><span>8. Feuille de route : les 11 étapes, de l'installation à la démo finale</span><span>10</span></div>
+    <div><span>9. Répartition du travail</span><span>13</span></div>
+    <div><span>10. Prototypes (format hybride)</span><span>14</span></div>
+    <div><span>11. Hypothèses, risques et points à valider</span><span>15</span></div>
+    <div><span>12. Références de départ</span><span>16</span></div>
+  </div>
+
+  <h2>1. Objet du document et conventions</h2>
+  <p>Ce rapport fixe le cadre du Projet 6 avant toute implémentation : ce qui est exigé par l'énoncé, ce que l'équipe propose pour y répondre, l'ordre des étapes, la manière de vérifier chaque étape et la répartition des tâches. Il sert de référence commune aux quatre membres et sera mis à jour si une décision change.</p>
+  <div class="box">
+    <h4>Conventions de lecture</h4>
+    <p style="margin:0"><span class="tag req">EXIGÉ p.X</span> exigence tirée de l'énoncé (numéro de page du PDF du sujet).
+    &nbsp; <span class="tag prop">PROPOSITION</span> choix de l'équipe, modifiable.
+    &nbsp; <span class="tag hyp">HYPOTHÈSE</span> information non encore vérifiée.
+    &nbsp; <span class="tag mock">DONNÉES FICTIVES</span> valeurs d'illustration, aucun modèle n'est encore entraîné.</p>
+  </div>
+  <h3>Décisions déjà validées par l'équipe (11/11/2026)</h3>
+  <table>
+    <tr><th style="width:28%">Décision</th><th>Choix retenu</th><th style="width:30%">Raison principale</th></tr>
+    <tr><td>Format du livrable</td><td>Hybride : package Python <code>src/drtl</code> + notebooks Kaggle pour la grille d'expériences, et petite démo Gradio en fin de projet</td><td>Couvre toutes les exigences ; la démo valorise la soutenance et reste optionnelle</td></tr>
+    <tr><td>Nom du dépôt / dossier</td><td><code>dr-transfer-learning</code></td><td>Court, explicite</td></tr>
+    <tr><td>Calcul (GPU)</td><td>Kaggle Notebooks (GPU P100 / 2×T4, quota gratuit hebdomadaire par compte)</td><td>Le dataset s'attache directement, 4 comptes = 4 entraînements en parallèle</td></tr>
+    <tr><td>Framework</td><td>PyTorch + <code>timm</code></td><td>Les 4 architectures imposées (dont MobileNetV4 et ViT-B/16) sont disponibles dans une seule bibliothèque</td></tr>
+  </table>
+</section>
+
+<!-- ============ ANALYSE DU SUJET ============ -->
+<section class="chap">
+  <h1>2. Analyse du sujet : exigences extraites du PDF</h1>
+  <p>Le sujet demande de classer la rétinopathie diabétique (DR) à partir de rétinographies couleur à l'aide de modèles pré-entraînés, en comparant trois stratégies de transfert : extraction de caractéristiques, fine-tuning partiel et fine-tuning complet <span class="tag req">EXIGÉ p.1</span>. L'objectif général est de concevoir, entraîner, comparer et évaluer des classifieurs d'images dans un domaine réel <span class="tag req">EXIGÉ p.5</span>.</p>
+  <table>
+    <tr><th style="width:30%">Exigence</th><th>Détail</th><th style="width:11%">Page</th></tr>
+    <tr><td>Dataset réel de DR</td><td>Exemple fourni : Kaggle <code>jockeroika/diabetic-retinopathy</code></td><td>p.1</td></tr>
+    <tr><td>Modèles comparés</td><td>MobileNetV4, DenseNet-201, VGG19, ViT-Base/16 + un CNN « from scratch »</td><td>p.3</td></tr>
+    <tr><td>Trois stratégies de transfert</td><td>Feature extraction, fine-tuning partiel, fine-tuning complet</td><td>p.1</td></tr>
+    <tr><td>Prétraitement et augmentation</td><td>Redimensionnement, normalisation, procédure d'augmentation, justifiés par des références</td><td>p.2</td></tr>
+    <tr><td>Découpage et validation croisée</td><td>Répartition apprentissage / validation / test ; validation croisée</td><td>p.2, p.3</td></tr>
+    <tr><td>Paramètres d'entraînement</td><td>Optimiseur, learning rate, batch size, nombre d'époques, mêmes conditions pour tous les modèles</td><td>p.3</td></tr>
+    <tr><td>Métriques</td><td>Accuracy, Precision, Recall, F1, ROC, AUC, matrices de confusion, nombre de paramètres, temps d'entraînement</td><td>p.3</td></tr>
+    <tr><td>Courbes d'apprentissage</td><td>Accuracy et loss, entraînement / validation</td><td>p.3</td></tr>
+    <tr><td>Analyse comparative</td><td>Modèle le plus précis, le plus léger, le plus robuste</td><td>p.3</td></tr>
+    <tr><td>Interprétabilité</td><td>Grad-CAM : zones malades, signes détectés</td><td>p.2, p.3</td></tr>
+    <tr><td>Papier en anglais</td><td>Structure imposée : Abstract, mots-clés, lien GitHub, Introduction, État de l'art (tableau des travaux récents), Méthodologie, Résultats, Interprétabilité, Discussion, Conclusion, Contributions, Références</td><td>p.1 à p.4</td></tr>
+    <tr><td>Dépôt Git</td><td>Code organisé et commenté, <code>README.md</code> (dépendances, exécution), historique de commits réguliers</td><td>p.4</td></tr>
+    <tr><td>Tableau des contributions</td><td>Contribution de chaque membre, à la fin du papier</td><td>p.4</td></tr>
+    <tr><td>Originalité</td><td>Travail original ; propositions innovantes encouragées</td><td>p.4, p.5</td></tr>
+    <tr><td>Échéances</td><td>Évaluation lors de la dernière séance de DL ; dépôt final (code + papier) au plus tard le jour de l'examen ; aucun ajout après</td><td>p.5</td></tr>
+  </table>
+  <div class="box warn">
+    <h4>Ce que le sujet ne précise pas</h4>
+    <ul style="margin:0">
+      <li>Aucun barème de notation n'est fourni. Nous supposons que le papier, la grille d'expériences comparable et la qualité du dépôt pèsent le plus. <span class="tag hyp">HYPOTHÈSE</span></li>
+      <li>Les dates exactes (dernière séance, examen) ne figurent pas dans le PDF : la feuille de route est exprimée en semaines relatives. <span class="tag hyp">HYPOTHÈSE</span></li>
+      <li>La taille de MobileNetV4 n'est pas imposée ; nous proposons la variante « conv small » (la plus légère). <span class="tag prop">PROPOSITION</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ IDÉE ET SOLUTION ============ -->
+<section class="chap">
+  <h1>3. Idée et solution proposée</h1>
+  <h2>3.1 Le problème</h2>
+  <p>La rétinopathie diabétique est l'une des premières causes de cécité évitable chez l'adulte en âge de travailler [1, 2]. La rétinographie couleur du fond d'œil est l'examen de dépistage standard : non invasif et peu coûteux [3]. Le nombre de patients diabétiques augmente beaucoup plus vite que le nombre d'ophtalmologues, et les lésions précoces (microanévrismes, petites hémorragies, exsudats) sont minuscules à l'échelle de l'image [3, 4]. Le Deep Learning a déjà montré des performances proches des experts [4], mais les jeux de données annotés restent limités, d'où l'intérêt du transfert d'apprentissage [5].</p>
+  <h2>3.2 La question de recherche</h2>
+  <div class="box"><p style="margin:0"><b>Pour un petit jeu de données de DR à 5 grades, quelle combinaison architecture × stratégie de transfert donne le meilleur compromis entre précision, légèreté et robustesse, et le modèle regarde-t-il les bonnes lésions ?</b></p></div>
+  <h2>3.3 La solution en une phrase</h2>
+  <p>Un pipeline PyTorch unique et paramétré (<code>src/drtl</code>) entraîne les 5 modèles sous les 3 stratégies avec exactement les mêmes données, folds, graine, taille d'image et budget d'époques ; un notebook Kaggle lance chaque configuration ; les résultats sont agrégés automatiquement dans les tableaux et figures du papier ; une démo Gradio présente le meilleur modèle avec sa carte Grad-CAM.</p>
+  <h2>3.4 Pourquoi ce format hybride</h2>
+  <table>
+    <tr><th></th><th>A. Notebook seul</th><th>B. Application seule</th><th>C. Hybride (retenu)</th></tr>
+    <tr><td><b>Couverture des exigences</b></td><td>Complète</td><td>Faible : la grille et le papier sont l'essentiel</td><td>Complète + créativité (p.5)</td></tr>
+    <tr><td><b>Effort</b></td><td>Faible</td><td>Élevé, peu valorisé</td><td>Faible à moyen ; démo ≈ 80 lignes</td></tr>
+    <tr><td><b>Travail à 4 sur Git</b></td><td>Conflits fréquents dans les <code>.ipynb</code></td><td>Correct</td><td>Bon : la logique est dans des <code>.py</code>, les notebooks restent fins</td></tr>
+    <tr><td><b>Soutenance</b></td><td>Défilement de notebooks</td><td>Visuelle mais vide</td><td>Démo en direct + tableaux de résultats</td></tr>
+    <tr><td><b>Risque</b></td><td>Faible</td><td>Élevé</td><td>Faible : la démo est la dernière étape et peut être abandonnée</td></tr>
+  </table>
+  <h2>3.5 Workflow proposé</h2>
+  <figure>
+    <svg width="100%" viewBox="0 0 700 190" font-family="Helvetica Neue, Arial" font-size="10.5">
+      <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#134e4a"/></marker></defs>
+      <g fill="#f0fdfa" stroke="#0f766e" stroke-width="1.3">
+        <rect x="6" y="20" width="92" height="56" rx="8"/><rect x="118" y="20" width="102" height="56" rx="8"/><rect x="240" y="20" width="108" height="56" rx="8"/>
+        <rect x="368" y="20" width="132" height="56" rx="8"/><rect x="520" y="20" width="84" height="56" rx="8"/><rect x="620" y="20" width="74" height="56" rx="8"/>
+      </g>
+      <g fill="#134e4a" font-weight="700" text-anchor="middle">
+        <text x="52" y="44">Données</text><text x="169" y="44">Prétraitement</text><text x="294" y="44">Découpage</text>
+        <text x="434" y="44">Entraînement</text><text x="562" y="44">Évaluation</text><text x="657" y="44">Grad-CAM</text>
+      </g>
+      <g fill="#475569" text-anchor="middle" font-size="9">
+        <text x="52" y="60">Kaggle DR</text><text x="52" y="71">5 grades</text>
+        <text x="169" y="60">recadrage, 224×224</text><text x="169" y="71">normalisation</text>
+        <text x="294" y="60">test 15 % figé</text><text x="294" y="71">5 folds stratifiés</text>
+        <text x="434" y="60">5 modèles × 3 stratégies</text><text x="434" y="71">mêmes conditions</text>
+        <text x="562" y="60">métriques</text><text x="562" y="71">ROC, AUC, CM</text>
+        <text x="657" y="60">+ démo</text><text x="657" y="71">Gradio</text>
+      </g>
+      <g stroke="#134e4a" stroke-width="1.4" marker-end="url(#a)"><line x1="98" y1="48" x2="116" y2="48"/><line x1="220" y1="48" x2="238" y2="48"/><line x1="348" y1="48" x2="366" y2="48"/><line x1="500" y1="48" x2="518" y2="48"/><line x1="604" y1="48" x2="618" y2="48"/></g>
+      <rect x="240" y="104" width="260" height="56" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.3" stroke-dasharray="5 3"/>
+      <text x="370" y="124" text-anchor="middle" fill="#9a3412" font-weight="700">Validation croisée (k = 5)</text>
+      <text x="370" y="140" text-anchor="middle" fill="#7c2d12" font-size="9">entraîner sur 4 folds, valider sur 1, ×5 → moyenne ± écart-type</text>
+      <text x="370" y="152" text-anchor="middle" fill="#7c2d12" font-size="9">meilleure config. ré-évaluée une seule fois sur le test</text>
+      <g stroke="#ea580c" stroke-width="1.2" fill="none" marker-end="url(#a)"><path d="M294,76 L294,102"/><path d="M434,102 L434,78"/></g>
+      <text x="6" y="182" fill="#64748b" font-size="9">Inspiré du schéma de workflow de l'énoncé (p.2), adapté à notre protocole.</text>
+    </svg>
+    <figcaption>Figure 1. Workflow de bout en bout. <span class="tag prop">PROPOSITION</span></figcaption>
+  </figure>
+  <h2>3.6 Ce qui distingue notre projet</h2>
+  <ul>
+    <li><b>Comparaison équitable et automatisée</b> : une seule commande par configuration, un seul fichier de configuration, résultats en CSV versionnés. <span class="tag prop">PROPOSITION</span></li>
+    <li><b>Robustesse mesurée</b>, pas seulement affirmée : écart-type entre folds et tests sur images légèrement dégradées (flou, luminosité, compression JPEG). <span class="tag prop">PROPOSITION</span></li>
+    <li><b>Métrique clinique en plus</b> : kappa quadratique pondéré (QWK), standard pour les grades ordinaux de DR. <span class="tag prop">PROPOSITION</span></li>
+    <li><b>Démo interactive</b> avec carte Grad-CAM pour la soutenance. <span class="tag prop">PROPOSITION</span></li>
+  </ul>
+</section>
+
+<!-- ============ DONNÉES ============ -->
+<section class="flow">
+  <h1>4. Données, prétraitement et augmentation</h1>
+  <h2>4.1 Jeu de données proposé</h2>
+  <p>Nous partons du jeu suggéré par l'énoncé : Kaggle <code>jockeroika/diabetic-retinopathy</code> <span class="tag req">EXIGÉ p.1 (exemple)</span>. Sur Kaggle Notebooks, il s'attache comme « Input » sans téléchargement ni clé API.</p>
+  <table>
+    <tr><th style="width:30%">Caractéristique</th><th>Valeur</th><th style="width:22%">Statut</th></tr>
+    <tr><td>Classes</td><td>5 grades, organisés en dossiers (l'URL de l'énoncé référence le dossier <code>Mild DR</code>) : No DR / Healthy, Mild, Moderate, Severe, Proliferative DR (échelle ICDR [6])</td><td><span class="tag hyp">HYPOTHÈSE</span> à confirmer à l'étape 2</td></tr>
+    <tr><td>Nombre d'images, images par classe</td><td>Non vérifié (l'API Kaggle exige une authentification). Mesuré et figé dans <code>data/splits/</code> à l'étape 2</td><td><span class="tag hyp">HYPOTHÈSE</span></td></tr>
+    <tr><td>Déséquilibre</td><td>Attendu : la classe saine domine, Severe et Proliferative sont rares</td><td><span class="tag hyp">HYPOTHÈSE</span></td></tr>
+    <tr><td>Doublons, images illisibles</td><td>Contrôle par hachage perceptuel et ouverture de chaque fichier</td><td><span class="tag prop">PROPOSITION</span></td></tr>
+  </table>
+  <h2>4.2 Découpage <span class="tag prop">PROPOSITION</span></h2>
+  <ul>
+    <li><b>Test figé : 15 %</b> stratifié par classe, jamais utilisé pour choisir un modèle.</li>
+    <li><b>85 % restants : validation croisée stratifiée à 5 folds</b> (graine 42). Chaque fold sert une fois de validation.</li>
+    <li>Le découpage est calculé une seule fois et versionné (<code>data/splits/folds.csv</code>) : tous les modèles voient exactement les mêmes images <span class="tag req">EXIGÉ p.3 « mêmes conditions »</span>.</li>
+  </ul>
+  <h2>4.3 Prétraitement</h2>
+  <p>Le prétraitement réduit les variations sans rapport avec la maladie (bords noirs, éclairage, taille) et adapte les images au format attendu par les réseaux pré-entraînés [7].</p>
+  <ol>
+    <li><b>Recadrage du disque rétinien</b> : suppression des bordures noires par seuillage. <span class="tag prop">PROPOSITION</span></li>
+    <li><b>Redimensionnement à 224 × 224</b> (taille native de ViT-B/16, VGG19 et DenseNet-201). <span class="tag req">EXIGÉ p.2 (redimensionnement)</span></li>
+    <li><b>Normalisation</b> : moyenne et écart-type ImageNet par canal, cohérents avec les poids pré-entraînés. <span class="tag req">EXIGÉ p.2 (normalisation)</span></li>
+    <li><b>Option à tester</b> : amélioration de contraste de type Ben Graham (soustraction d'un flou gaussien) [7], comparée en ablation sur un seul modèle. <span class="tag prop">PROPOSITION</span></li>
+  </ol>
+  <h2>4.4 Augmentation de données</h2>
+  <p>L'augmentation réduit le sur-apprentissage sur un petit jeu en présentant des variantes plausibles des mêmes images [8]. Appliquée <b>uniquement à l'entraînement</b>, à la volée :</p>
+  <table>
+    <tr><th>Transformation</th><th>Paramètres proposés</th><th>Justification</th></tr>
+    <tr><td>Retournements horizontal / vertical</td><td>p = 0,5</td><td>L'orientation du fond d'œil n'est pas pertinente pour le grade</td></tr>
+    <tr><td>Rotation</td><td>± 20°</td><td>Variations de positionnement à l'acquisition</td></tr>
+    <tr><td>Zoom / recadrage aléatoire</td><td>échelle 0,9 à 1,0</td><td>Variations de champ</td></tr>
+    <tr><td>Luminosité, contraste</td><td>± 15 %</td><td>Variations entre caméras et patients</td></tr>
+  </table>
+  <p class="legend">Exclu volontairement : déformations fortes, changements de teinte importants (ils peuvent effacer ou imiter des lésions). <span class="tag prop">PROPOSITION</span></p>
+</section>
+
+<!-- ============ MODÈLES ============ -->
+<section class="flow">
+  <h1>5. Modèles, stratégies et protocole d'entraînement</h1>
+  <h2>5.1 Modèles <span class="tag req">EXIGÉ p.3</span></h2>
+  <table>
+    <tr><th>Modèle</th><th>Identifiant <code>timm</code> proposé</th><th>Paramètres (ordre de grandeur)</th><th>Pourquoi dans la comparaison</th></tr>
+    <tr><td>CNN from scratch</td><td>module maison (4 blocs conv-BN-ReLU-pool + tête)</td><td>≈ 1 M</td><td>Référence sans transfert : mesure l'apport du pré-entraînement</td></tr>
+    <tr><td>MobileNetV4 [9]</td><td><code>mobilenetv4_conv_small</code></td><td>≈ 3,8 M</td><td>Très léger, cible mobile</td></tr>
+    <tr><td>DenseNet-201 [10]</td><td><code>densenet201</code></td><td>≈ 20 M</td><td>Connexions denses, très utilisé en imagerie médicale</td></tr>
+    <tr><td>VGG19 [11]</td><td><code>vgg19_bn</code></td><td>≈ 144 M</td><td>Architecture classique et lourde, point de comparaison historique</td></tr>
+    <tr><td>ViT-Base/16 [12]</td><td><code>vit_base_patch16_224</code></td><td>≈ 86 M</td><td>Transformer : comparaison CNN vs attention</td></tr>
+  </table>
+  <p class="legend">Les nombres exacts de paramètres seront mesurés par le code (tête à 5 classes incluse) et reportés dans le tableau du papier.</p>
+  <h2>5.2 Les trois stratégies de transfert <span class="tag req">EXIGÉ p.1</span></h2>
+  <table>
+    <tr><th style="width:24%">Stratégie</th><th>Couches entraînées</th><th style="width:22%">Learning rate proposé</th></tr>
+    <tr><td><b>Feature extraction</b></td><td>Backbone gelé, seule la nouvelle tête de classification (5 sorties) est entraînée</td><td>1e-3</td></tr>
+    <tr><td><b>Fine-tuning partiel</b></td><td>Tête + dernier tiers environ du backbone (derniers blocs / stages) dégelés</td><td>1e-4 (backbone), 1e-3 (tête)</td></tr>
+    <tr><td><b>Fine-tuning complet</b></td><td>Tout le réseau</td><td>3e-5 (backbone), 1e-3 (tête)</td></tr>
+  </table>
+  <p>Le CNN from scratch n'a qu'une stratégie (tout entraîner, lr 1e-3). La grille compte donc <b>4 × 3 + 1 = 13 configurations</b>, chacune sur 5 folds, soit 65 entraînements. <span class="tag prop">PROPOSITION</span></p>
+  <h2>5.3 Paramètres communs <span class="tag req">EXIGÉ p.3</span> (valeurs : <span class="tag prop">PROPOSITION</span>)</h2>
+  <table>
+    <tr><th style="width:30%">Paramètre</th><th>Valeur</th></tr>
+    <tr><td>Optimiseur</td><td>AdamW, weight decay 1e-4</td></tr>
+    <tr><td>Planification du learning rate</td><td>Cosine annealing avec 1 époque de warm-up</td></tr>
+    <tr><td>Batch size</td><td>32 (réduit à 16 avec accumulation de gradient si la mémoire GPU est insuffisante pour VGG19 / ViT)</td></tr>
+    <tr><td>Nombre d'époques</td><td>30 maximum, early stopping sur la loss de validation (patience 5)</td></tr>
+    <tr><td>Fonction de perte</td><td>Entropie croisée pondérée par l'inverse de la fréquence des classes (déséquilibre)</td></tr>
+    <tr><td>Précision numérique</td><td>Mixed precision (AMP) sur GPU</td></tr>
+    <tr><td>Graine, image, folds</td><td>42 ; 224 × 224 ; mêmes 5 folds pour tous</td></tr>
+    <tr><td>Validation croisée</td><td>Stratifiée, k = 5 ; repli possible à k = 3 si le quota GPU ne suffit pas</td></tr>
+  </table>
+  <h2>5.4 Budget de calcul estimé <span class="tag hyp">HYPOTHÈSE</span></h2>
+  <p>Avec quelques milliers d'images en 224 × 224, une époque prend de quelques secondes (feature extraction, MobileNetV4) à environ une minute (fine-tuning complet de ViT-B/16 ou VGG19) sur un GPU P100. Estimation : 20 à 30 heures GPU pour la grille complète, réparties sur les 4 comptes Kaggle (quota gratuit hebdomadaire par compte). Le budget réel sera mesuré à l'étape 5 sur une configuration et la grille ajustée si besoin.</p>
+</section>
+
+<!-- ============ MÉTRIQUES ============ -->
+<section class="flow">
+  <h1>6. Métriques d'évaluation et interprétabilité</h1>
+  <h2>6.1 Métriques <span class="tag req">EXIGÉ p.3</span></h2>
+  <p>Avec TP, TN, FP, FN calculés par classe (un contre tous) puis moyennés (macro, chaque classe compte autant, adapté au déséquilibre) [13] :</p>
+  <table>
+    <tr><th style="width:24%">Métrique</th><th style="width:38%">Formule</th><th>Lecture</th></tr>
+    <tr><td>Accuracy</td><td class="mono">(TP + TN) / (TP + TN + FP + FN)</td><td>Part d'images bien classées ; trompeuse si les classes sont déséquilibrées</td></tr>
+    <tr><td>Precision</td><td class="mono">TP / (TP + FP)</td><td>Quand le modèle annonce un grade, a-t-il raison ?</td></tr>
+    <tr><td>Recall (sensibilité)</td><td class="mono">TP / (TP + FN)</td><td>Combien de cas réels sont retrouvés ? Critique pour le dépistage</td></tr>
+    <tr><td>F1-score</td><td class="mono">2 · P · R / (P + R)</td><td>Compromis précision / rappel ; <b>métrique principale de sélection</b> <span class="tag prop">PROPOSITION</span></td></tr>
+    <tr><td>Courbe ROC, AUC</td><td class="mono">TPR = TP/(TP+FN) vs FPR = FP/(FP+TN)</td><td>Un contre tous par classe + moyenne macro ; AUC = aire sous la courbe</td></tr>
+    <tr><td>Matrice de confusion</td><td>Comptes réels × prédits</td><td>Montre quels grades voisins sont confondus</td></tr>
+    <tr><td>QWK <span class="tag prop">PROPOSITION</span></td><td class="mono">1 − Σ wᵢⱼOᵢⱼ / Σ wᵢⱼEᵢⱼ, wᵢⱼ = (i−j)²/(K−1)²</td><td>Pénalise davantage les erreurs de plusieurs grades</td></tr>
+    <tr><td>Coût</td><td>Nb de paramètres, temps d'entraînement, temps d'inférence / image</td><td>Répond à « le plus léger » <span class="tag req">EXIGÉ p.3</span></td></tr>
+  </table>
+  <h2>6.2 Répondre aux trois questions de l'analyse comparative <span class="tag req">EXIGÉ p.3</span></h2>
+  <table>
+    <tr><th style="width:26%">Question</th><th>Critère opérationnel proposé</th></tr>
+    <tr><td>Le plus précis ?</td><td>F1 macro moyen sur les 5 folds, puis confirmé sur le test figé ; AUC et QWK en appui</td></tr>
+    <tr><td>Le plus léger ?</td><td>Nombre de paramètres, taille du fichier de poids, temps d'inférence CPU par image</td></tr>
+    <tr><td>Le plus robuste ?</td><td>Plus faible écart-type entre folds + plus faible chute de F1 sur images dégradées (flou, luminosité, JPEG)</td></tr>
+  </table>
+  <h2>6.3 Interprétabilité <span class="tag req">EXIGÉ p.2, p.3</span></h2>
+  <ul>
+    <li><b>Grad-CAM</b> [14] sur la dernière couche convolutive de chaque CNN ; pour ViT-B/16, Grad-CAM adapté aux tokens (reshape 14 × 14) ou attention rollout.</li>
+    <li>Figure type : pour chaque grade, une image correctement classée et une erreur, avec la carte superposée ; commentaire des zones chaudes (exsudats, hémorragies, néovaisseaux) pour répondre à « zones malades » et « signes détectés ».</li>
+    <li>Bibliothèque : <code>pytorch-grad-cam</code>. <span class="tag prop">PROPOSITION</span></li>
+  </ul>
+</section>
+
+<!-- ============ STRUCTURE ============ -->
+<section class="chap">
+  <h1>7. Structure du dépôt et outillage</h1>
+  <div class="two">
+    <div>
+<pre class="tree">dr-transfer-learning/
+├── README.md          <span class="c"># équipe, installation, exécution</span>
+├── requirements.txt   <span class="c"># dépendances épinglées</span>
+├── .gitignore         <span class="c"># data/, poids, caches exclus</span>
+├── configs/
+│   └── default.yaml   <span class="c"># paramètres communs</span>
+├── src/drtl/          <span class="c"># package : toute la logique</span>
+│   ├── config.py      <span class="c"># chargement YAML + surcharges</span>
+│   ├── utils.py       <span class="c"># graine, device (cuda/mps/cpu)</span>
+│   ├── data.py        <span class="c"># dataset, folds, loaders</span>
+│   ├── transforms.py  <span class="c"># prétraitement, augmentation</span>
+│   ├── models.py      <span class="c"># timm + CNN scratch + gel</span>
+│   ├── train.py       <span class="c"># boucle, early stopping</span>
+│   ├── evaluate.py    <span class="c"># métriques, figures</span>
+│   └── gradcam.py     <span class="c"># cartes d'activation</span>
+├── notebooks/
+│   ├── 00_setup_check.ipynb
+│   ├── 01_eda.ipynb
+│   ├── 02_train_and_evaluate.ipynb
+│   └── 03_gradcam.ipynb
+├── app/app.py         <span class="c"># démo Gradio</span>
+├── data/              <span class="c"># ignoré par Git…</span>
+│   └── splits/        <span class="c"># …sauf folds.csv</span>
+├── results/           <span class="c"># CSV + figures versionnés</span>
+├── tests/             <span class="c"># tests rapides (pytest)</span>
+├── paper/             <span class="c"># papier anglais (LaTeX)</span>
+└── docs/              <span class="c"># ce rapport, prototypes</span></pre>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Règles de travail <span class="tag prop">PROPOSITION</span></h3>
+      <ul>
+        <li><b>Branches</b> : <code>main</code> protégée ; une branche par tâche (<code>feat/data-folds</code>, <code>feat/gradcam</code>…), fusion par Pull Request relue par un autre membre.</li>
+        <li><b>Commits</b> réguliers et lisibles (<code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>exp:</code>) : l'historique est un livrable <span class="tag req">EXIGÉ p.4</span>.</li>
+        <li><b>Notebooks fins</b> : pas de logique métier dans les <code>.ipynb</code>, sorties effacées avant commit (sauf notebooks de résultats finaux).</li>
+        <li><b>Jamais de données ni de poids dans Git</b> : images sur Kaggle ; poids dans les « Output » Kaggle ou un Kaggle Dataset privé de l'équipe.</li>
+        <li><b>Résultats traçables</b> : chaque entraînement écrit une ligne dans <code>results/runs.csv</code> (modèle, stratégie, fold, métriques, durée, commit Git).</li>
+      </ul>
+      <h3>Outillage</h3>
+      <table>
+        <tr><th>Usage</th><th>Outil</th></tr>
+        <tr><td>Entraînement</td><td>Kaggle Notebooks (GPU)</td></tr>
+        <tr><td>Développement local</td><td>Python ≥ 3.9, venv, PyTorch (MPS sur Mac Apple Silicon, sinon CPU)</td></tr>
+        <tr><td>Modèles</td><td><code>timm</code>, <code>torchvision</code></td></tr>
+        <tr><td>Métriques, figures</td><td><code>scikit-learn</code>, <code>matplotlib</code>, <code>pandas</code></td></tr>
+        <tr><td>Interprétabilité</td><td><code>pytorch-grad-cam</code></td></tr>
+        <tr><td>Démo</td><td><code>gradio</code></td></tr>
+        <tr><td>Papier</td><td>LaTeX (Overleaf), en anglais <span class="tag req">EXIGÉ p.4</span></td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ÉTAPES ============ -->
+<section class="chap">
+  <h1>8. Feuille de route : les 11 étapes</h1>
+  <p>Durées en semaines relatives (S1 = semaine de démarrage), les dates officielles n'étant pas dans l'énoncé <span class="tag hyp">HYPOTHÈSE</span>. Les étapes 3 à 4 et 8 à 10 peuvent avancer en parallèle. Chaque étape se termine par une Pull Request fusionnée dans <code>main</code>.</p>
+
+  <div class="step"><div class="hd"><span class="num">1</span><span class="ttl">Initialisation du dépôt et de l'environnement</span><span class="who">S1 · ALAA EDDINE</span></div><table>
+    <tr><td class="k">Objectif</td><td>Un dépôt GitHub propre que chaque membre peut cloner et exécuter en moins de 10 minutes.</td></tr>
+    <tr><td class="k">Tâches</td><td>Initialiser Git dans le dossier du projet ; créer l'arborescence (section 7) ; <code>README.md</code> (équipe, installation, exécution) ; <code>.gitignore</code> ; <code>requirements.txt</code> ; package <code>src/drtl</code> minimal (config, graine, détection du device, construction des modèles) ; <code>configs/default.yaml</code> ; notebook <code>00_setup_check.ipynb</code> ; test <code>tests/test_smoke.py</code> ; premier commit et push ; invitation des 3 collaborateurs.</td></tr>
+    <tr><td class="k">Livrable</td><td>Commit <code>chore: initialize deep learning project</code> sur <code>main</code>, avec ce rapport et les prototypes.</td></tr>
+    <tr><td class="k">Vérification</td><td><code>pytest -q</code> passe ; le notebook de vérification s'exécute de bout en bout (<code>jupyter nbconvert --execute</code>) et construit les 5 architectures sur un batch factice ; chaque membre refait l'installation sur sa machine et sur Kaggle.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">2</span><span class="ttl">Acquisition et exploration des données (EDA)</span><span class="who">S1-S2 · Abdelati</span></div><table>
+    <tr><td class="k">Objectif</td><td>Connaître exactement le dataset et figer le découpage.</td></tr>
+    <tr><td class="k">Tâches</td><td>Attacher le dataset sur Kaggle ; compter les images par classe ; vérifier formats, tailles, fichiers corrompus et doublons ; galerie d'exemples par grade ; générer <code>data/splits/folds.csv</code> (test 15 % + 5 folds stratifiés, graine 42).</td></tr>
+    <tr><td class="k">Livrable</td><td><code>notebooks/01_eda.ipynb</code>, <code>folds.csv</code>, figure de distribution des classes, tableau « Dataset » du papier.</td></tr>
+    <tr><td class="k">Vérification</td><td>Aucune image commune entre test et folds ; proportions de classes identiques (± 1 %) dans chaque fold ; les hypothèses de la section 4.1 sont confirmées ou corrigées dans ce rapport.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">3</span><span class="ttl">Prétraitement et augmentation</span><span class="who">S2 · Abdelati</span></div><table>
+    <tr><td class="k">Objectif</td><td>Un pipeline d'images unique, identique pour tous les modèles.</td></tr>
+    <tr><td class="k">Tâches</td><td>Recadrage du disque, redimensionnement 224, normalisation ImageNet, augmentations (section 4.4) dans <code>transforms.py</code> ; <code>Dataset</code> et <code>DataLoader</code> dans <code>data.py</code>.</td></tr>
+    <tr><td class="k">Livrable</td><td>Modules testés + figure « image originale / prétraitée / augmentée ».</td></tr>
+    <tr><td class="k">Vérification</td><td>Tests unitaires : forme de sortie 3×224×224, moyenne ≈ 0 et écart-type ≈ 1 après normalisation, aucune augmentation en validation/test ; contrôle visuel de 20 images.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">4</span><span class="ttl">Modèles et stratégies de gel</span><span class="who">S2 · ALAA EDDINE + chaque responsable de modèle</span></div><table>
+    <tr><td class="k">Objectif</td><td>Construire n'importe quelle configuration par son nom.</td></tr>
+    <tr><td class="k">Tâches</td><td><code>models.build(cfg)</code> : backbone <code>timm</code> pré-entraîné + tête à 5 classes ; fonctions de gel pour les 3 stratégies ; CNN from scratch ; comptage des paramètres entraînables.</td></tr>
+    <tr><td class="k">Livrable</td><td><code>models.py</code> + tableau des paramètres (total / entraînables) par configuration.</td></tr>
+    <tr><td class="k">Vérification</td><td>Test : pour chaque configuration, le nombre de paramètres entraînables suit l'ordre feature extraction &lt; partiel &lt; complet ; un pas d'optimisation ne modifie pas les poids gelés.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">5</span><span class="ttl">Boucle d'entraînement et première configuration de bout en bout</span><span class="who">S3 · ALAA EDDINE</span></div><table>
+    <tr><td class="k">Objectif</td><td>Prouver tout le pipeline sur une configuration avant de lancer la grille.</td></tr>
+    <tr><td class="k">Tâches</td><td><code>train.py</code> (AdamW, cosine, AMP, early stopping, perte pondérée, sauvegarde du meilleur checkpoint, journal <code>runs.csv</code>) ; notebook <code>02_train_and_evaluate.ipynb</code> paramétré ; lancer MobileNetV4 / feature extraction / fold 0 sur Kaggle ; mesurer la durée par époque.</td></tr>
+    <tr><td class="k">Livrable</td><td>Premier résultat réel + estimation chiffrée du budget GPU de la grille.</td></tr>
+    <tr><td class="k">Vérification</td><td>Test de sur-apprentissage volontaire : sur 32 images, la loss tend vers 0 ; la courbe de validation est cohérente ; relancer avec la même graine donne les mêmes métriques (± faible bruit GPU).</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">6</span><span class="ttl">Grille d'expériences sur Kaggle</span><span class="who">S3-S5 · les 4 membres (1 modèle chacun)</span></div><table>
+    <tr><td class="k">Objectif</td><td>Entraîner les 13 configurations × 5 folds dans les mêmes conditions.</td></tr>
+    <tr><td class="k">Tâches</td><td>Chaque membre lance son modèle sur son compte Kaggle (voir section 9) ; récupère <code>runs.csv</code>, courbes et checkpoints ; commit des résultats (pas des poids).</td></tr>
+    <tr><td class="k">Livrable</td><td><code>results/runs.csv</code> complet (65 lignes), courbes d'apprentissage par configuration.</td></tr>
+    <tr><td class="k">Vérification</td><td>Script de contrôle : 65 lignes, aucune configuration manquante, même hash de <code>default.yaml</code> et de <code>folds.csv</code> sur toutes les lignes.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">7</span><span class="ttl">Évaluation et analyse comparative</span><span class="who">S5 · Ikram</span></div><table>
+    <tr><td class="k">Objectif</td><td>Produire tous les tableaux et figures de résultats du papier.</td></tr>
+    <tr><td class="k">Tâches</td><td><code>evaluate.py</code> : moyennes ± écart-type, matrices de confusion, ROC/AUC un contre tous, QWK ; évaluation unique de la meilleure configuration de chaque modèle sur le test figé ; tests de robustesse sur images dégradées ; tableau « Résultats globaux » (format p.3).</td></tr>
+    <tr><td class="k">Livrable</td><td><code>results/summary.csv</code>, figures PNG/PDF prêtes pour le papier.</td></tr>
+    <tr><td class="k">Vérification</td><td>Les métriques recalculées à partir des prédictions sauvegardées correspondent à <code>runs.csv</code> ; les sommes des matrices de confusion = nombre d'images évaluées.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">8</span><span class="ttl">Interprétabilité Grad-CAM</span><span class="who">S5 · Youssef</span></div><table>
+    <tr><td class="k">Objectif</td><td>Montrer où regardent les modèles et si cela correspond aux lésions.</td></tr>
+    <tr><td class="k">Tâches</td><td><code>gradcam.py</code> pour CNN et ViT ; figure par grade (bonne prédiction + erreur) pour les meilleurs modèles ; commentaire des zones et signes.</td></tr>
+    <tr><td class="k">Livrable</td><td><code>notebooks/03_gradcam.ipynb</code> + figures de la section V du papier.</td></tr>
+    <tr><td class="k">Vérification</td><td>Test de cohérence : la carte change lorsque la classe ciblée change ; sur une image saine, pas de zone chaude systématique sur le disque optique uniquement ; revue visuelle par l'équipe.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">9</span><span class="ttl">Démo Gradio (optionnelle)</span><span class="who">S6 · Youssef</span></div><table>
+    <tr><td class="k">Objectif</td><td>Présenter le meilleur modèle en direct pendant la soutenance.</td></tr>
+    <tr><td class="k">Tâches</td><td><code>app/app.py</code> : choix du modèle, import d'une image, probabilités des 5 grades, carte Grad-CAM, avertissement « non dispositif médical ».</td></tr>
+    <tr><td class="k">Livrable</td><td>Application lançable par <code>python app/app.py</code> + capture pour le papier.</td></tr>
+    <tr><td class="k">Vérification</td><td>Les prédictions de l'app sont identiques à celles du notebook pour 10 images du test ; temps de réponse &lt; 2 s sur CPU portable.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">10</span><span class="ttl">Rédaction du papier (anglais) et finalisation du dépôt</span><span class="who">S4-S7 · les 4 membres</span></div><table>
+    <tr><td class="k">Objectif</td><td>Un papier complet respectant la structure imposée et un dépôt reproductible.</td></tr>
+    <tr><td class="k">Tâches</td><td>Rédiger chaque section (répartition section 9) ; tableau des travaux récents ; références ; lien GitHub dans le papier ; tableau des contributions ; mise à jour du README avec résultats et commandes de reproduction.</td></tr>
+    <tr><td class="k">Livrable</td><td><code>paper/main.pdf</code>, README final, tag Git <code>v1.0</code>.</td></tr>
+    <tr><td class="k">Vérification</td><td>Liste de contrôle de la structure p.1 à p.4 cochée section par section ; relecture croisée ; un membre reproduit un résultat à partir du seul README.</td></tr>
+  </table></div>
+
+  <div class="step"><div class="hd"><span class="num">11</span><span class="ttl">Préparation de la soutenance et démo finale</span><span class="who">S7 · les 4 membres</span></div><table>
+    <tr><td class="k">Objectif</td><td>Présenter clairement la démarche, les résultats et la démo.</td></tr>
+    <tr><td class="k">Tâches</td><td>Diapositives (problème, méthode, résultats, Grad-CAM, limites) ; répétition chronométrée ; plan B hors ligne (captures, vidéo de la démo).</td></tr>
+    <tr><td class="k">Livrable</td><td>Présentation + dépôt final avant la date limite <span class="tag req">EXIGÉ p.5</span>.</td></tr>
+    <tr><td class="k">Vérification</td><td>Deux répétitions complètes ; démo testée sur la machine de présentation la veille ; dépôt final vérifié (clonage frais) au moins 24 h avant l'échéance.</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ RÉPARTITION ============ -->
+<section class="chap">
+  <h1>9. Répartition du travail <span class="tag prop">PROPOSITION</span></h1>
+  <p>Chaque membre a un axe technique, un modèle à entraîner sur son compte Kaggle et des sections du papier. Cette répartition alimentera le tableau des contributions exigé <span class="tag req">EXIGÉ p.4</span>.</p>
+  <table>
+    <tr><th style="width:17%">Membre</th><th>Axe technique</th><th style="width:17%">Modèle(s) entraîné(s)</th><th style="width:27%">Sections du papier</th></tr>
+    <tr><td><b>ALAA EDDINE</b><br><span class="legend">chef de projet</span></td><td>Dépôt, environnement, pipeline commun (<code>config</code>, <code>models</code>, <code>train</code>), intégration, relecture des PR, suivi du planning</td><td>ViT-Base/16</td><td>Méthodologie (workflow, modèles, paramètres), Conclusion</td></tr>
+    <tr><td><b>Abdelati</b></td><td>Données : EDA, découpage, prétraitement, augmentation (<code>data</code>, <code>transforms</code>)</td><td>CNN from scratch, VGG19</td><td>Dataset, Prétraitement, Augmentation, Limites</td></tr>
+    <tr><td><b>Ikram</b></td><td>Évaluation : métriques, figures, robustesse, tableaux (<code>evaluate</code>)</td><td>DenseNet-201</td><td>Métriques, Résultats, Analyse comparative</td></tr>
+    <tr><td><b>Youssef</b></td><td>Interprétabilité et démo (<code>gradcam</code>, <code>app</code>)</td><td>MobileNetV4</td><td>Introduction, État de l'art, Interprétabilité, Perspectives</td></tr>
+  </table>
+  <p class="legend">Tous : recherche bibliographique (au moins 5 références chacun), relecture croisée, Discussion, Abstract. Abdelati prend deux modèles car le CNN from scratch est rapide à entraîner.</p>
+  <h2>Planning indicatif</h2>
+  <figure>
+    <svg width="100%" viewBox="0 0 700 250" font-family="Helvetica Neue, Arial" font-size="10">
+      <g fill="#64748b" text-anchor="middle"><text x="215" y="14">S1</text><text x="285" y="14">S2</text><text x="355" y="14">S3</text><text x="425" y="14">S4</text><text x="495" y="14">S5</text><text x="565" y="14">S6</text><text x="635" y="14">S7</text></g>
+      <g stroke="#e5e7eb"><line x1="180" y1="20" x2="180" y2="240"/><line x1="250" y1="20" x2="250" y2="240"/><line x1="320" y1="20" x2="320" y2="240"/><line x1="390" y1="20" x2="390" y2="240"/><line x1="460" y1="20" x2="460" y2="240"/><line x1="530" y1="20" x2="530" y2="240"/><line x1="600" y1="20" x2="600" y2="240"/><line x1="670" y1="20" x2="670" y2="240"/></g>
+      <g fill="#111827">
+        <text x="4" y="38">1. Dépôt et environnement</text><text x="4" y="58">2. Données et EDA</text><text x="4" y="78">3. Prétraitement</text><text x="4" y="98">4. Modèles et gel</text><text x="4" y="118">5. Entraînement (1 config.)</text><text x="4" y="138">6. Grille Kaggle</text><text x="4" y="158">7. Évaluation</text><text x="4" y="178">8. Grad-CAM</text><text x="4" y="198">9. Démo (optionnelle)</text><text x="4" y="218">10. Papier et dépôt</text><text x="4" y="238">11. Soutenance</text>
+      </g>
+      <g fill="#0f766e"><rect x="182" y="28" width="66" height="13" rx="3"/><rect x="200" y="48" width="118" height="13" rx="3"/><rect x="252" y="68" width="66" height="13" rx="3"/><rect x="252" y="88" width="66" height="13" rx="3"/><rect x="322" y="108" width="66" height="13" rx="3"/></g>
+      <rect x="340" y="128" width="188" height="13" rx="3" fill="#ea580c"/>
+      <g fill="#0f766e"><rect x="462" y="148" width="66" height="13" rx="3"/><rect x="462" y="168" width="66" height="13" rx="3"/></g>
+      <rect x="532" y="188" width="66" height="13" rx="3" fill="#94a3b8"/>
+      <rect x="392" y="208" width="276" height="13" rx="3" fill="#1d4ed8"/>
+      <rect x="602" y="228" width="66" height="13" rx="3" fill="#0f766e"/>
+    </svg>
+    <figcaption>Figure 2. Planning en semaines relatives (orange : utilise le quota GPU ; gris : optionnel ; bleu : rédaction continue). <span class="tag hyp">HYPOTHÈSE</span> à recaler sur les dates officielles.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ PROTOTYPES ============ -->
+<section class="chap">
+  <h1>10. Prototypes (format hybride)</h1>
+  <p>Deux prototypes non fonctionnels montrent la forme visée des livrables. Ils sont versionnés dans <code>docs/prototypes/</code> (HTML + PNG). <b>Toutes les valeurs affichées sont fictives</b> <span class="tag mock">DONNÉES FICTIVES</span> : aucun modèle n'a encore été entraîné.</p>
+  <h2>10.1 Notebook Kaggle : organisation et section « Résultats »</h2>
+  <figure>
+    <img src="../prototypes/notebook_prototype.png" alt="Prototype du notebook Kaggle">
+    <figcaption>Figure 3. <code>02_train_and_evaluate.ipynb</code> : le notebook importe le package <code>drtl</code>, lance une configuration (modèle × stratégie × fold), puis affiche le tableau récapitulatif et les figures (courbe d'apprentissage, matrice de confusion, ROC). <span class="tag mock">DONNÉES FICTIVES</span></figcaption>
+  </figure>
+</section>
+<section class="chap">
+  <h2 style="margin-top:0">10.2 Démo Gradio : parcours utilisateur et écran de résultat</h2>
+  <figure>
+    <img src="../prototypes/app_prototype.png" alt="Prototype de la démo Gradio">
+    <figcaption>Figure 4. Parcours en 3 étapes : choisir le modèle, importer une rétinographie, lire le grade prédit, les probabilités des 5 classes et la carte Grad-CAM. L'image de fond d'œil est un dessin schématique. <span class="tag mock">DONNÉES FICTIVES</span></figcaption>
+  </figure>
+  <h3>Ce que les prototypes engagent</h3>
+  <ul>
+    <li>Le tableau du notebook reprend exactement les colonnes exigées p.3 (Accuracy, Precision, Recall, F1, AUC, paramètres, temps d'entraînement).</li>
+    <li>Les notebooks n'ont que quelques cellules : toute la logique est dans <code>src/drtl</code>, ce qui limite les conflits Git.</li>
+    <li>La démo réutilise <code>models.build</code> et <code>gradcam.py</code> : pas de code dupliqué.</li>
+  </ul>
+
+  <!-- ============ RISQUES ============ -->
+  <h1 style="margin-top:22px">11. Hypothèses, risques et points à valider</h1>
+  <table>
+    <tr><th style="width:34%">Risque / hypothèse</th><th style="width:12%">Impact</th><th>Réponse prévue</th></tr>
+    <tr><td>Composition réelle du dataset différente (classes, effectifs)</td><td>Moyen</td><td>Vérification à l'étape 2 ; mise à jour de ce rapport ; repli possible sur APTOS 2019 (même échelle à 5 grades)</td></tr>
+    <tr><td>Quota GPU Kaggle insuffisant</td><td>Élevé</td><td>Mesure à l'étape 5 ; répartition sur 4 comptes ; repli k = 3 folds ou 20 époques max</td></tr>
+    <tr><td>Déséquilibre des classes</td><td>Élevé</td><td>Perte pondérée, F1 macro comme métrique principale, analyse par classe</td></tr>
+    <tr><td>Mémoire GPU (VGG19, ViT complet)</td><td>Moyen</td><td>Batch 16 + accumulation de gradient, AMP</td></tr>
+    <tr><td>Fuite de données (même patient ou doublons entre ensembles)</td><td>Élevé</td><td>Détection de doublons à l'étape 2 ; si des identifiants patients existent, découpage par patient</td></tr>
+    <tr><td>Dates officielles non connues</td><td>Moyen</td><td>Planning relatif ; à recaler dès l'annonce</td></tr>
+    <tr><td>Conflits Git dans les notebooks</td><td>Faible</td><td>Logique dans <code>.py</code>, sorties effacées, une branche par tâche</td></tr>
+    <tr><td>Démo non terminée</td><td>Faible</td><td>Étape optionnelle ; captures dans le papier suffisent</td></tr>
+  </table>
+</section>
+
+<!-- ============ RÉFÉRENCES ============ -->
+<section class="chap">
+  <h1>12. Références de départ</h1>
+  <p class="legend">Liste initiale servant de point de départ au papier ; chaque membre la complète pour ses sections (en particulier le tableau des travaux récents, p.2 de l'énoncé).</p>
+  <ol style="font-size:9pt">
+    <li>Teo Z. L. et al., « Global prevalence of diabetic retinopathy and projection of burden through 2045 », <i>Ophthalmology</i>, 128(11), 2021.</li>
+    <li>International Diabetes Federation, <i>IDF Diabetes Atlas</i>, 10e édition, 2021.</li>
+    <li>Ting D. S. W., Cheung G. C. M., Wong T. Y., « Diabetic retinopathy: global prevalence, major risk factors, screening practices and public health challenges », <i>Clinical &amp; Experimental Ophthalmology</i>, 44(4), 2016.</li>
+    <li>Gulshan V. et al., « Development and validation of a deep learning algorithm for detection of diabetic retinopathy in retinal fundus photographs », <i>JAMA</i>, 316(22), 2016.</li>
+    <li>Yosinski J., Clune J., Bengio Y., Lipson H., « How transferable are features in deep neural networks? », <i>NeurIPS</i>, 2014.</li>
+    <li>Wilkinson C. P. et al., « Proposed international clinical diabetic retinopathy and diabetic macular edema disease severity scales », <i>Ophthalmology</i>, 110(9), 2003.</li>
+    <li>Graham B., « Kaggle Diabetic Retinopathy Detection competition report », Université de Warwick, 2015.</li>
+    <li>Shorten C., Khoshgoftaar T. M., « A survey on image data augmentation for deep learning », <i>Journal of Big Data</i>, 6(60), 2019.</li>
+    <li>Qin D. et al., « MobileNetV4: Universal models for the mobile ecosystem », <i>ECCV</i>, 2024.</li>
+    <li>Huang G., Liu Z., van der Maaten L., Weinberger K. Q., « Densely connected convolutional networks », <i>CVPR</i>, 2017.</li>
+    <li>Simonyan K., Zisserman A., « Very deep convolutional networks for large-scale image recognition », <i>ICLR</i>, 2015.</li>
+    <li>Dosovitskiy A. et al., « An image is worth 16x16 words: Transformers for image recognition at scale », <i>ICLR</i>, 2021.</li>
+    <li>Sokolova M., Lapalme G., « A systematic analysis of performance measures for classification tasks », <i>Information Processing &amp; Management</i>, 45(4), 2009.</li>
+    <li>Selvaraju R. R. et al., « Grad-CAM: Visual explanations from deep networks via gradient-based localization », <i>ICCV</i>, 2017.</li>
+    <li>Wightman R., « PyTorch Image Models (timm) », GitHub, 2019. https://github.com/huggingface/pytorch-image-models</li>
+    <li>Énoncé du projet : Pr. M. AATILA, « Projet 6 : Diabetic Retinopathy Classification from Color Fundus Photography Using Deep Transfer Learning », Master ISI S3, FSSM, 2025-2026.</li>
+  </ol>
+  <div class="box" style="margin-top:14px">
+    <h4>Prochaine action</h4>
+    <p style="margin:0">Validation de ce rapport par l'équipe, puis réalisation de l'<b>étape 1</b> (initialisation du dépôt et de l'environnement) et premier push sur GitHub.</p>
+  </div>
+</section>
+
+</body>
+</html>

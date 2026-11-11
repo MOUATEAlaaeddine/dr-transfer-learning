@@ -1,0 +1,41 @@
+# Shared settings for every experiment.
+# The assignment (p.3) requires all models to be trained under the same conditions,
+# so model-specific values live here too instead of inside notebooks.
+
+seed: 42
+
+data:
+  # Kaggle dataset suggested by the assignment (p.1).
+  kaggle_dataset: jockeroika/diabetic-retinopathy
+  root: data/raw
+  splits_file: data/splits/folds.csv
+  image_size: 224
+  # ICDR grades, in order. Folder names are confirmed in Step 2 (EDA).
+  class_names: [No DR, Mild, Moderate, Severe, Proliferative]
+  test_fraction: 0.15   # frozen, stratified, used once at the very end
+  n_folds: 5            # stratified cross-validation on the remaining 85 %
+
+# timm identifiers. "scratch_cnn" is our own small CNN (src/drtl/models.py).
+models:
+  mobilenetv4: mobilenetv4_conv_small
+  densenet201: densenet201
+  vgg19: vgg19_bn
+  vit_b16: vit_base_patch16_224
+  scratch_cnn: scratch_cnn
+
+# Three transfer strategies (assignment title). Learning rates follow the planning report §5.2.
+strategies:
+  feature_extraction: {head_lr: 1.0e-3, backbone_lr: 0.0}
+  partial_finetuning: {head_lr: 1.0e-3, backbone_lr: 1.0e-4, unfreeze_fraction: 0.33}
+  full_finetuning:    {head_lr: 1.0e-3, backbone_lr: 3.0e-5}
+
+training:
+  optimizer: adamw
+  weight_decay: 1.0e-4
+  scheduler: cosine
+  warmup_epochs: 1
+  batch_size: 32
+  max_epochs: 30
+  early_stopping_patience: 5
+  class_weighted_loss: true   # classes are expected to be imbalanced
+  mixed_precision: true       # only used on CUDA GPUs

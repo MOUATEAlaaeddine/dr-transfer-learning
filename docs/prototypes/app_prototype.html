@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Demo App Prototype</title>
+<style>
+  :root { --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --brand:#f97316; --panel:#fff; --bg:#f9fafb; --mock:#c2410c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); font:14px/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; color:var(--ink); }
+  .wrap { width:1100px; margin:0 auto; padding:18px 22px 24px; }
+  header { display:flex; justify-content:space-between; align-items:center; }
+  h1 { font-size:22px; margin:0; } .sub { color:var(--muted); font-size:13px; }
+  .mock { font-size:12px; font-weight:700; color:var(--mock); border:1px dashed var(--mock); padding:3px 9px; border-radius:12px; background:#fff7ed; }
+  .flow { display:flex; gap:10px; margin:14px 0; }
+  .step { flex:1; background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13px; }
+  .step b { display:inline-block; width:22px; height:22px; border-radius:50%; background:var(--brand); color:#fff; text-align:center; line-height:22px; margin-right:6px; font-size:12px; }
+  .step.done { border-color:#fdba74; }
+  .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .label { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  select, .btn { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff; }
+  .btn { background:var(--brand); color:#fff; border:none; font-weight:700; text-align:center; margin-top:10px; }
+  .img { display:flex; justify-content:center; }
+  .bars .row { display:grid; grid-template-columns:110px 1fr 46px; align-items:center; gap:8px; margin:7px 0; font-size:13px; }
+  .track { height:14px; background:#f3f4f6; border-radius:7px; overflow:hidden; } .fill { height:100%; background:#fdba74; } .fill.top { background:var(--brand); }
+  .verdict { margin-top:10px; padding:10px; border-radius:8px; background:#fff7ed; border:1px solid #fed7aa; font-size:13px; }
+  .verdict strong { font-size:16px; }
+  .note { margin-top:12px; font-size:11.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>RetinaLens · DR Grading Demo</h1><div class="sub">Gradio app · runs locally on the best checkpoint · Grad-CAM explanations</div></div>
+    <span class="mock">PROTOTYPE · MOCK PREDICTION</span>
+  </header>
+  <div class="flow">
+    <div class="step done"><b>1</b>Pick a model (default: best from the grid)</div>
+    <div class="step done"><b>2</b>Upload a fundus photo (JPG/PNG)</div>
+    <div class="step done"><b>3</b>Read the grade, probabilities and heatmap</div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <div class="label">Input</div>
+      <select><option>DenseNet-201 · partial fine-tuning</option></select>
+      <div class="img" style="margin-top:10px">
+        <svg width="250" height="250" viewBox="0 0 250 250">
+          <defs><radialGradient id="r" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f59e0b"/><stop offset=".7" stop-color="#c2410c"/><stop offset="1" stop-color="#7c2d12"/></radialGradient></defs>
+          <rect width="250" height="250" fill="#000"/>
+          <circle cx="125" cy="125" r="118" fill="url(#r)"/>
+          <circle cx="170" cy="118" r="18" fill="#fde68a" opacity=".9"/>
+          <path d="M170,118 C130,90 90,70 40,80 M170,118 C130,140 90,170 45,175 M170,118 C150,70 140,40 120,15 M170,118 C150,165 140,200 125,235" stroke="#7f1d1d" stroke-width="3" fill="none" opacity=".7"/>
+          <g fill="#fef08a"><circle cx="95" cy="110" r="4"/><circle cx="102" cy="118" r="3"/><circle cx="88" cy="122" r="3"/><circle cx="110" cy="150" r="3"/></g>
+          <g fill="#7f1d1d"><circle cx="80" cy="150" r="5"/><circle cx="130" cy="80" r="4"/><circle cx="70" cy="95" r="3"/></g>
+        </svg>
+      </div>
+      <div class="btn">Analyze</div>
+    </div>
+    <div class="panel">
+      <div class="label">Prediction</div>
+      <div class="bars">
+        <div class="row"><span>No DR</span><div class="track"><div class="fill" style="width:4%"></div></div><span>0.04</span></div>
+        <div class="row"><span>Mild</span><div class="track"><div class="fill" style="width:11%"></div></div><span>0.11</span></div>
+        <div class="row"><span><b>Moderate</b></span><div class="track"><div class="fill top" style="width:71%"></div></div><span><b>0.71</b></span></div>
+        <div class="row"><span>Severe</span><div class="track"><div class="fill" style="width:10%"></div></div><span>0.10</span></div>
+        <div class="row"><span>Proliferative</span><div class="track"><div class="fill" style="width:4%"></div></div><span>0.04</span></div>
+      </div>
+      <div class="verdict">Predicted grade: <strong>Moderate DR</strong><br>Confidence 71% · referral recommended</div>
+      <div class="note">Research prototype, not a medical device. Mock values shown.</div>
+    </div>
+    <div class="panel">
+      <div class="label">Grad-CAM: where the model looked</div>
+      <div class="img">
+        <svg width="250" height="250" viewBox="0 0 250 250">
+          <defs>
+            <radialGradient id="r2" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f59e0b"/><stop offset=".7" stop-color="#c2410c"/><stop offset="1" stop-color="#7c2d12"/></radialGradient>
+            <radialGradient id="h1"><stop offset="0" stop-color="#ef4444" stop-opacity=".85"/><stop offset=".5" stop-color="#facc15" stop-opacity=".5"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></radialGradient>
+          </defs>
+          <rect width="250" height="250" fill="#000"/>
+          <circle cx="125" cy="125" r="118" fill="url(#r2)" opacity=".55"/>
+          <circle cx="125" cy="125" r="118" fill="#1e3a8a" opacity=".35"/>
+          <circle cx="97" cy="118" r="42" fill="url(#h1)"/>
+          <circle cx="80" cy="150" r="26" fill="url(#h1)"/>
+          <circle cx="130" cy="82" r="22" fill="url(#h1)"/>
+        </svg>
+      </div>
+      <div class="note">Hot regions overlap hard exudates (yellow) and haemorrhages (dark red) in the input image.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

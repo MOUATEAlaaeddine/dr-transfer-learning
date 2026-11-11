@@ -1,0 +1,30 @@
+# Environments
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data: images stay on Kaggle; only the frozen split file is versioned
+data/*
+!data/splits/
+data/splits/*
+!data/splits/.gitkeep
+!data/splits/folds.csv
+
+# Model weights and run outputs (stored as Kaggle outputs, never in Git)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+checkpoints/
+outputs/
+
+# Local tooling
+.DS_Store
+.vscode/
+.idea/
+CLAUDE.md
+.claude/
+.gstack/
