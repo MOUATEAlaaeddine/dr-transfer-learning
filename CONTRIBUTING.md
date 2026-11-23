@@ -33,8 +33,10 @@ These rules keep the four of us able to read, run and present each other's work.
   graded (assignment p.4).
 - Never commit images or model weights. Data stays on Kaggle; weights go to Kaggle outputs or a
   private team Kaggle dataset.
-- Each training run appends one line to `results/runs.csv` (model, strategy, fold, metrics,
-  duration, commit).
+- Each training run writes its own record, `results/runs/<model>__<strategy>__fold<k>.json`, plus its
+  validation predictions (model, strategy, fold, metrics, config and split hashes, commit, duration,
+  checkpoint). `results/runs.csv` is regenerated with `python -m drtl.results`, never edited by hand,
+  so parallel runs never conflict. Formats: `docs/team/INTERFACES.md`.
 - The README lists real setup steps, team roles and **only verified results**. Any mock prediction
   or metric (prototypes, placeholders) is labelled **SIMULATED** wherever it appears.
 - Original work (assignment p.4): cite the libraries, weights, datasets and papers we use, and

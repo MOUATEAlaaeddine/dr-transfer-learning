@@ -25,7 +25,11 @@ That is 4 backbones × 3 strategies + 1 baseline = **13 configurations**, each o
 |---|---|---|
 | 1. Repository and environment | ALAA EDDINE | done |
 | 2. Data and EDA | Abdelati | next |
-| 3–11 | see [planning report](docs/Rapport_de_cadrage.pdf) §8 | to do |
+| 4. Freezing strategies, optimizer groups | ALAA EDDINE | done (tested) |
+| 5. Training loop, run records, notebook 02 | ALAA EDDINE | done on SIMULATED data; first real run waits for Step 2 |
+| 3, 6–11 | see [planning report](docs/Rapport_de_cadrage.pdf) §8 | to do |
+
+Team handoff: [docs/team/START_HERE.md](docs/team/START_HERE.md).
 
 **Results:** none yet. No model has been trained. Every prediction or metric shown in
 `docs/prototypes/` is **simulated** and labelled as such; it only shows the intended layout.
@@ -40,7 +44,8 @@ git clone https://github.com/MOUATEAlaaeddine/dr-transfer-learning.git
 cd dr-transfer-learning
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q                                                   # 9 fast tests, no internet needed
+pip install -e .                                            # makes `python -m drtl.run` work from anywhere
+pytest -q                                                   # fast tests, no internet needed
 python -m nbconvert --to notebook --execute notebooks/00_setup_check.ipynb --output-dir /tmp
 ```
 
@@ -60,11 +65,15 @@ configs/default.yaml   shared settings: models, strategies, training parameters
 src/drtl/              all reusable code (notebooks and the demo import it)
   config.py            YAML loading + per-run overrides
   utils.py             seeding, device detection (CUDA / MPS / CPU)
-  models.py            timm backbones + from-scratch CNN, parameter counts
-notebooks/             thin notebooks that call src/drtl (00 = setup check)
+  models.py            timm backbones + from-scratch CNN, freezing strategies, LR groups
+  train.py             training loop: AdamW, warm-up + cosine, AMP, early stopping, resume
+  run.py               one model × strategy × fold run (also `python -m drtl.run`)
+  results.py           per-run records and the merged results/runs.csv
+  fixtures.py          SIMULATED images for tests and smoke runs only
+notebooks/             thin notebooks that call src/drtl (00 setup check, 02 train one run)
 tests/                 pytest smoke tests
 data/splits/           frozen split file (images themselves stay on Kaggle)
-results/               versioned CSV results and figures
+results/               per-run records (results/runs/), merged CSV, figures
 paper/                 English paper (required structure, assignment p.1–4)
 docs/                  planning report (French) and UI prototypes
 ```
