@@ -29,13 +29,26 @@ strategies:
   partial_finetuning: {head_lr: 1.0e-3, backbone_lr: 1.0e-4, unfreeze_fraction: 0.33}
   full_finetuning:    {head_lr: 1.0e-3, backbone_lr: 3.0e-5}
 
+# The from-scratch CNN has a single strategy: every layer trained, one learning rate (report §5.2).
+baseline:
+  scratch: {head_lr: 1.0e-3, backbone_lr: 1.0e-3}
+
 training:
   optimizer: adamw
   weight_decay: 1.0e-4
-  scheduler: cosine
-  warmup_epochs: 1
+  scheduler: cosine           # cosine decay to 0 over max_epochs, per optimizer step
+  warmup_epochs: 1            # linear warm-up before the cosine decay
   batch_size: 32
+  accumulation_steps: 1       # VGG19/ViT out of memory: batch_size 16 + accumulation_steps 2
   max_epochs: 30
   early_stopping_patience: 5
-  class_weighted_loss: true   # classes are expected to be imbalanced
+  early_stopping_monitor: val_loss      # report §5.3: stop when validation loss stops improving
+  checkpoint_monitor: val_macro_f1      # report §6.1: F1 macro is the selection metric
+  class_weighted_loss: true   # inverse class frequency, computed on the training folds only
   mixed_precision: true       # only used on CUDA GPUs
+  num_workers: 2
+
+# Where runs write. On Kaggle, /kaggle/working/outputs is kept as the notebook's Outputs.
+outputs:
+  checkpoints_dir: outputs      # weights, logs, resumable state (never committed)
+  results_dir: results/runs     # one small JSON + validation predictions per run (committed)
