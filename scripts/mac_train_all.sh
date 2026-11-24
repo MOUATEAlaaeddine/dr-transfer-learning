@@ -8,7 +8,8 @@ export PYTHONPATH="$PWD/src"      # no install needed: the package is imported f
 PY=.venv/bin/python
 exec > >(tee -a outputs/launcher.log) 2>&1
 echo "== $(date) · $($PY --version) · torch $($PY -c 'import torch;print(torch.__version__, "mps:", torch.backends.mps.is_available())')"
-$PY -m pytest -q 2>&1 | tail -3 | tee outputs/pytest_mac.log
+# Tests take long on CPU; run them only with:  bash scripts/mac_train_all.sh --test
+if [ "$1" = "--test" ]; then $PY -X faulthandler scripts/run_tests.py; tail -1 outputs/pytest_mac.log; fi
 if [ ! -f data/splits/folds.csv ]; then
   $PY scripts/prepare_data.py --raw data/raw > outputs/prepare_data.log 2>&1 || { echo "prepare_data failed: see outputs/prepare_data.log"; exit 1; }
   tail -3 outputs/prepare_data.log
