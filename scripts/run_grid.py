@@ -28,7 +28,7 @@ from drtl.results import run_id
 from drtl.run import run_experiment
 
 STATUS = PROJECT_ROOT / "outputs" / "grid_status.json"
-LOW_MEMORY = {"training": {"batch_size": 16, "accumulation_steps": 2}}
+LOW_MEMORY = {"training": {"batch_size": 16, "accumulation_steps": 2, "num_workers": 2}}
 
 
 def _free_memory():
@@ -41,7 +41,25 @@ def _free_memory():
 
 def _is_oom(err: Exception) -> bool:
     text = str(err).lower()
-    return "out of memory" in text or "mps backend out of memory" in text
+    # A DataLoader worker killed by macOS under memory pressure is the same problem as an OOM.
+    return "out of memory" in text or "exited unexpectedly" in text
+
+
+def prefetch_weights(config, models, attempts=5):
+    """Download every ImageNet checkpoint once, before training, so a network drop cannot fail a run."""
+    import timm
+    for key in models:
+        name = config["models"][key]
+        if name == "scratch_cnn":
+            continue
+        for attempt in range(1, attempts + 1):
+            try:
+                timm.create_model(name, pretrained=True, num_classes=5)
+                print(f"weights ready: {name}", flush=True)
+                break
+            except Exception as err:  # network: wait and retry
+                print(f"weights {name} attempt {attempt} failed: {str(err)[:120]}", flush=True)
+                time.sleep(30 * attempt)
 
 
 def plan(config, models=None, folds=None):
@@ -73,15 +91,15 @@ def main():
         status["updated"] = dt.datetime.now().isoformat(timespec="seconds")
         STATUS.write_text(json.dumps(status, indent=2))
 
-    for model, strategy, fold in queue:
+    prefetch_weights(config, a.models or list(config["models"]))
+
+    def train(model, strategy, fold):
         rid = run_id(model, strategy, fold)
-        if status["runs"].get(rid, {}).get("state") == "completed":
-            continue
         status["runs"][rid] = {"state": "running", "since": dt.datetime.now().isoformat(timespec="seconds")}
         save()
         start = time.time()
         overrides = dict(base_overrides)
-        for attempt in (1, 2):
+        for attempt in (1, 2, 3):
             try:
                 record = run_experiment(model, strategy, fold, overrides=overrides)
                 status["runs"][rid] = {"state": "completed", "val_f1_macro": record["val_f1_macro"],
@@ -90,15 +108,22 @@ def main():
                 break
             except Exception as err:  # keep the grid going; the error is in the status file
                 _free_memory()
-                if attempt == 1 and _is_oom(err):
-                    overrides = {**overrides, **LOW_MEMORY}
-                    continue
+                if _is_oom(err):
+                    overrides = {**overrides, "training": {**overrides.get("training", {}), **LOW_MEMORY["training"]}}
+                else:
+                    time.sleep(60)  # network or transient error: resume from last.pt after a pause
                 status["runs"][rid] = {"state": "failed", "error": str(err).splitlines()[0][:300],
-                                       "trace": traceback.format_exc()[-1500:]}
-                break
+                                       "trace": traceback.format_exc()[-1500:], "attempts": attempt}
         _free_memory()
         save()
         print(f"[{status['completed']}/{len(queue)}] {rid}: {status['runs'][rid]['state']}", flush=True)
+
+    for model, strategy, fold in queue:
+        if status["runs"].get(run_id(model, strategy, fold), {}).get("state") != "completed":
+            train(model, strategy, fold)
+    for model, strategy, fold in queue:  # last chance for runs that failed three times
+        if status["runs"].get(run_id(model, strategy, fold), {}).get("state") == "failed":
+            train(model, strategy, fold)
     print("Grid finished:", status["completed"], "/", len(queue))
 
 

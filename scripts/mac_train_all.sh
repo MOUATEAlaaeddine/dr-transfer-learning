@@ -14,6 +14,12 @@ if [ ! -f data/splits/folds.csv ]; then
   $PY scripts/prepare_data.py --raw data/raw > outputs/prepare_data.log 2>&1 || { echo "prepare_data failed: see outputs/prepare_data.log"; exit 1; }
   tail -3 outputs/prepare_data.log
 fi
-# 6 loader workers on the M5; the grid is fold-major and resumable (re-run this script to continue).
-nohup caffeinate -i env PYTHONPATH="$PYTHONPATH" $PY scripts/run_grid.py --overrides '{"training": {"num_workers": 6}}' > outputs/grid.log 2>&1 &
+pkill -f "scripts/run_grid.py" 2>/dev/null && echo "stopped the previous grid (it resumes from its checkpoints)" && sleep 3
+# 4 loader workers on the M5 (6 crashed under memory pressure with DenseNet full fine-tuning); the grid is fold-major and resumable (re-run this script to continue).
+nohup caffeinate -i env PYTHONPATH="$PYTHONPATH" $PY scripts/run_grid.py --overrides '{"training": {"num_workers": 4}}' > outputs/grid.log 2>&1 &
 echo "Grid started in the background (PID $!). You can close this terminal; keep the Mac plugged in."
+if ! pgrep -f "scripts/dashboard.py" >/dev/null; then
+  nohup $PY scripts/dashboard.py > outputs/dashboard.log 2>&1 &
+  sleep 2
+fi
+open http://127.0.0.1:8765
