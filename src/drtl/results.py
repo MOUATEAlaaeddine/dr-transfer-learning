@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from drtl.config import PROJECT_ROOT, load_config
+from drtl.fixtures import SYNTHETIC_SOURCE
 from drtl.models import strategies_for
 
 SCHEMA_VERSION = 1
@@ -82,7 +83,7 @@ def merge_runs(results_dir: Path, config: Dict[str, Any], out_csv: Path) -> pd.D
     Smoke and SIMULATED runs are never merged; a missing run is shown as missing, never filled.
     """
     runs = load_runs(results_dir)
-    runs = runs[(runs["status"] == REAL_STATUS) & (runs["data_source"] == "kaggle")]
+    runs = runs[(runs["status"] == REAL_STATUS) & (runs["data_source"] != SYNTHETIC_SOURCE)]
     present = set(runs["run_id"])
     missing = []
     for rid in expected_run_ids(config):
