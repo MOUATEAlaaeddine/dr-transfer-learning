@@ -9,7 +9,7 @@ from scratch.
 
 | | |
 |---|---|
-| Dataset | [Kaggle · jockeroika/diabetic-retinopathy](https://www.kaggle.com/datasets/jockeroika/diabetic-retinopathy) |
+| Dataset | [APTOS 2019, 224 px (Kaggle · sovitrath)](https://www.kaggle.com/datasets/sovitrath/diabetic-retinopathy-224x224-2019-data): 3,662 images, CC0. The assignment's example dataset (jockeroika) was deleted from Kaggle; APTOS 2019 is the fallback planned in the report §11 |
 | Backbones (ImageNet) | MobileNetV4-S, DenseNet-201, VGG19-BN, ViT-Base/16 |
 | Baseline | Small CNN trained from scratch |
 | Transfer strategies | Feature extraction · Partial fine-tuning · Full fine-tuning |
