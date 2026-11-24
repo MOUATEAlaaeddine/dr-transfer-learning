@@ -45,7 +45,7 @@ def test_real_mode_run_writes_a_complete_record(stand_in_data, tmp_path):
                             output_root=tmp_path / "outputs", results_dir=tmp_path / "runs", device="cpu")
     saved = json.loads((tmp_path / "runs" / "scratch_cnn__scratch__fold0.json").read_text())
     assert set(RUN_COLUMNS) <= set(saved)
-    assert saved["status"] == "completed" and saved["data_source"] == "kaggle"
+    assert saved["status"] == "completed" and saved["data_source"] == "jockeroika/diabetic-retinopathy"
     assert saved["splits_hash"] == file_hash(stand_in_data) and len(saved["config_hash"]) == 12
     assert (tmp_path / "runs" / saved["predictions_file"]).exists()
     again = run_experiment("scratch_cnn", "scratch", 0, splits_file=stand_in_data,

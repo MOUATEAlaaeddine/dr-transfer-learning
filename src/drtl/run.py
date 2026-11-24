@@ -23,12 +23,11 @@ from drtl.fixtures import SYNTHETIC_SOURCE, make_synthetic_fold_loaders, synthet
 from drtl.models import build_for_run, count_parameters, strategy_settings
 from drtl.results import REAL_STATUS, file_hash, run_id, write_run
 from drtl.train import BEST, LAST, fit
+from drtl.transforms import IMAGENET_MEAN, IMAGENET_STD
 from drtl.utils import get_device, set_seed
 
 KAGGLE_WORKING = Path("/kaggle/working")
 KAGGLE_INPUT = Path("/kaggle/input")
-IMAGENET_MEAN = (0.485, 0.456, 0.406)
-IMAGENET_STD = (0.229, 0.224, 0.225)
 
 # Smoke runs check the plumbing in minutes: two epochs on a few batches. Never reported.
 SMOKE_OVERRIDES = {"training": {"max_epochs": 2, "batch_size": 8, "warmup_epochs": 1}}
@@ -68,7 +67,9 @@ def _real_loaders(config, splits_file: Path, fold: int, image_root: Optional[Pat
                            "SIMULATED pipeline check, or wait for the data PR.") from err
     if not Path(splits_file).exists():
         raise FileNotFoundError(f"{splits_file} not found: the frozen split is produced in Step 2 (Abdelati)")
-    root = image_root or find_kaggle_dataset(config["data"]["kaggle_dataset"]) or PROJECT_ROOT / config["data"]["root"]
+    cache = PROJECT_ROOT / "data" / "cache" / str(config["data"]["image_size"])
+    root = (image_root or (cache if (cache / "CACHE_INFO.json").exists() else None)
+            or find_kaggle_dataset(config["data"]["kaggle_dataset"]) or PROJECT_ROOT / config["data"]["root"])
     splits = load_splits(splits_file)
     train_loader, val_loader = make_fold_loaders(config, splits, fold, Path(root), batch_size=batch_size)
     return splits, train_loader, val_loader
@@ -118,7 +119,7 @@ def run_experiment(model: str, strategy: str, fold: int, *, overrides: Optional[
         splits_hash, data_source = "SIMULATED", SYNTHETIC_SOURCE
     else:
         splits, train_loader, val_loader = _real_loaders(config, splits_file, fold, image_root, batch_size)
-        splits_hash, data_source = file_hash(splits_file), "kaggle"
+        splits_hash, data_source = file_hash(splits_file), config["data"]["kaggle_dataset"]
 
     # Guard against leakage: validation must be exactly fold k of the CV part, test never used.
     cv = splits[splits["split"] == "cv"]
