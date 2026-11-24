@@ -24,10 +24,12 @@ That is 4 backbones × 3 strategies + 1 baseline = **13 configurations**, each o
 | Step | Owner | State |
 |---|---|---|
 | 1. Repository and environment | ALAA EDDINE | done |
-| 2. Data and EDA | Abdelati | next |
-| 4. Freezing strategies, optimizer groups | ALAA EDDINE | done (tested) |
-| 5. Training loop, run records, notebook 02 | ALAA EDDINE | done on SIMULATED data; first real run waits for Step 2 |
-| 3, 6–11 | see [planning report](docs/Rapport_de_cadrage.pdf) §8 | to do |
+| 2–3. Data, split, preprocessing (`scripts/prepare_data.py`) | ALAA EDDINE | code done and tested; waits for the dataset download |
+| 4–5. Strategies, training loop, notebook 02 | ALAA EDDINE | done, tested on SIMULATED data |
+| 6. Grid of 65 runs (`scripts/run_grid.py`) | ALAA EDDINE | ready; not started |
+| 7. Evaluation, robustness (`scripts/final_evaluation.py`) | ALAA EDDINE | code done and tested |
+| 8–9. Grad-CAM, Gradio demo (`app/app.py`) | ALAA EDDINE | code done; SIMULATED example mode until real checkpoints |
+| 10–11. Paper, defence | team | to do |
 
 Team handoff: [docs/team/START_HERE.md](docs/team/START_HERE.md).
 
@@ -80,15 +82,14 @@ docs/                  planning report (French) and UI prototypes
 
 ## Team
 
-| Member | Technical area | Trains | Paper sections |
-|---|---|---|---|
-| ALAA EDDINE (lead) | Repository, environment, shared pipeline (config, models, training), integration, reviews | ViT-Base/16 | Methodology, Conclusion |
-| Abdelati | Data: EDA, splits, preprocessing, augmentation | CNN from scratch, VGG19 | Dataset, Preprocessing, Augmentation, Limitations |
-| Ikram | Evaluation: metrics, figures, robustness, tables | DenseNet-201 | Metrics, Results, Comparative analysis |
-| Youssef | Interpretability (Grad-CAM) and demo app | MobileNetV4 | Introduction, Related work, Interpretability, Perspectives |
+| Member | Contribution |
+|---|---|
+| MOUATE ALAA EDDINE (lead) | Repository and environment; all code in `src/drtl`, `scripts/` and `app/` (data pipeline, models and transfer strategies, training, evaluation, robustness, Grad-CAM, demo); all training runs |
+| Abdelati | *to be filled with what he actually contributes (paper sections, review, references, presentation)* |
+| Ikram | *idem* |
+| Youssef | *idem* |
 
-Everyone: at least five references each, cross-review, Discussion, Abstract.
-The final contributions table in the paper is filled from this split and the Git history.
+The contributions table of the paper is filled from what each member actually did and from the Git history.
 
 ## Working rules
 

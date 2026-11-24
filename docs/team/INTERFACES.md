@@ -5,14 +5,9 @@ already calls them; `tests/test_integration_boundary.py` checks the contract wit
 stand-in until the real modules are merged. Change a signature only through a PR reviewed by the
 person who depends on it.
 
-| Module | Owner | Used by |
-|---|---|---|
-| `drtl/transforms.py`, `drtl/data.py` | Abdelati | `run.py` (training), Ikram (test set), Youssef (demo) |
-| `drtl/models.py`, `drtl/train.py`, `drtl/run.py`, `drtl/results.py` | Alaa | everyone |
-| `drtl/evaluate.py`, `drtl/robustness.py` | Ikram | aggregation, paper, demo (degradations) |
-| `drtl/gradcam.py`, `app/app.py` | Youssef | notebook 03, demo |
+All modules are implemented by MOUATE ALAA EDDINE.
 
-## 1. Split table · `data/splits/folds.csv` (Abdelati → everyone)
+## 1. Split table · `data/splits/folds.csv`
 
 One row per image, frozen once, committed, never regenerated after the first real run.
 
@@ -29,7 +24,7 @@ One row per image, frozen once, committed, never regenerated after the first rea
 `splits_hash` = first 12 hex of SHA-256 of this file with CRLF → LF (`drtl.results.file_hash`), so
 Windows and Mac clones give the same hash. Commit the file with LF endings (`.gitattributes`).
 
-## 2. Preprocessing · `drtl/transforms.py` (Abdelati)
+## 2. Preprocessing · `drtl/transforms.py`
 
 ```python
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -42,7 +37,7 @@ crop. Augmentation only in `build_train_transform` (report §4.4). `build_eval_t
 function the demo imports as is. `run.py` stores the same mean/std in each checkpoint; when
 `transforms.py` lands, replace the two constants in `run.py` by an import from it.
 
-## 3. Loaders · `drtl/data.py` (Abdelati)
+## 3. Loaders · `drtl/data.py`
 
 ```python
 def load_splits(path: Path) -> pd.DataFrame                    # columns of §1
@@ -57,7 +52,7 @@ def make_test_loader(config, splits, image_root, batch_size) -> DataLoader   # f
 * `num_workers = config["training"]["num_workers"]`; must also work with 0 on Windows.
 * `image_root` is the folder Kaggle mounts (`run.find_kaggle_dataset` finds it).
 
-## 4. Run · `drtl.run.run_experiment` (Alaa → everyone)
+## 4. Run · `drtl.run.run_experiment`
 
 ```python
 run_experiment(model, strategy, fold, *, overrides=None, smoke=False, synthetic=False,
@@ -68,7 +63,7 @@ run_experiment(model, strategy, fold, *, overrides=None, smoke=False, synthetic=
 `feature_extraction, partial_finetuning, full_finetuning` (or `scratch` for `scratch_cnn`).
 Same thing from a shell: `python -m drtl.run --model vit_b16 --strategy feature_extraction --fold 0`.
 
-## 5. Checkpoints (Alaa → Ikram, Youssef)
+## 5. Checkpoints
 
 `<outputs>/<run_id>/` with `<outputs>` = `/kaggle/working/outputs` on Kaggle, `outputs/` locally.
 
@@ -83,7 +78,7 @@ Same thing from a shell: `python -m drtl.run --model vit_b16 --strategy feature_
 normalization{mean,std}, seed, config_hash, splits_hash, git_commit, overrides, data_source, pretrained`.
 Reload with `drtl.train.load_best(path) -> {"model", "metadata", "val_metrics"}` (model in eval mode).
 
-## 6. Run record · `results/runs/<run_id>.json` (Alaa → Ikram)
+## 6. Run record · `results/runs/<run_id>.json`
 
 `run_id = <model>__<strategy>__fold<k>`, e.g. `vit_b16__feature_extraction__fold0`.
 Fields (`drtl.results.RUN_COLUMNS`): `run_id, model, timm_name, strategy, fold, status, data_source,
@@ -92,13 +87,13 @@ accumulation_steps, params_total, params_trainable, epochs_run, best_epoch, stop
 duration_s, sec_per_epoch, val_loss, val_accuracy, val_precision_macro, val_recall_macro,
 val_f1_macro, checkpoint_ref, predictions_file, started_at, schema_version` (+ `class_names`).
 
-* `status`: `completed` (real), `smoke`, `synthetic`. Only `completed` + `data_source = kaggle` are merged.
+* `status`: `completed` (real), `smoke`, `synthetic`. Only `completed` runs on the real dataset are merged (never `synthetic-SIMULATED`).
 * Next to it: `<run_id>_val_predictions.csv` with columns `label, pred, prob_0 … prob_4`
   (validation fold, best epoch). Ikram recomputes every metric (AUC, QWK, confusion) from it.
 * `python -m drtl.results` regenerates `results/runs.csv`: the 65 expected runs, `missing` where no
   record exists. Never edit `runs.csv` by hand; never fill a missing run.
 
-## 7. Evaluation · `drtl/evaluate.py` (Ikram)
+## 7. Evaluation · `drtl/evaluate.py`
 
 ```python
 def compute_metrics(y_true, y_prob, num_classes=5) -> dict
@@ -109,7 +104,7 @@ A class absent from `y_true`: its AUC is undefined → excluded from the macro A
 `absent_classes` (never silently 0.5). F1/precision/recall keep all 5 labels (`labels=range(5)`),
 as in `drtl.train.basic_metrics`.
 
-## 8. Degradations · `drtl/robustness.py` (Ikram → Youssef)
+## 8. Degradations · `drtl/robustness.py`
 
 ```python
 def degrade(image: PIL.Image.Image, kind: str, level: int) -> PIL.Image.Image
@@ -117,7 +112,7 @@ def degrade(image: PIL.Image.Image, kind: str, level: int) -> PIL.Image.Image
 ```
 Applied **before** `build_eval_transform`, identically in the robustness table and the demo slider.
 
-## 9. Attribution · `drtl/gradcam.py` (Youssef)
+## 9. Attribution · `drtl/gradcam.py`
 
 ```python
 def attribution(model, image_tensor, target_class: int, model_name: str) -> tuple[np.ndarray, str]
