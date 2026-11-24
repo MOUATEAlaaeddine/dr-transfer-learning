@@ -118,6 +118,21 @@ def main():
         save()
         print(f"[{status['completed']}/{len(queue)}] {rid}: {status['runs'][rid]['state']}", flush=True)
 
+    # Runs finished under another precision setting are redone, so every run shares one setting.
+    from drtl.train import amp_enabled
+    from drtl.utils import get_device
+    want_amp = amp_enabled(config, get_device())
+    results = PROJECT_ROOT / config["outputs"]["results_dir"]
+    for rid, info in list(status["runs"].items()):
+        rec = results / f"{rid}.json"
+        if info.get("state") == "completed" and rec.exists() and json.loads(rec.read_text()).get("amp") != want_amp:
+            rec.rename(rec.with_suffix(".fp32.json.bak"))
+            last = PROJECT_ROOT / config["outputs"]["checkpoints_dir"] / rid / "last.pt"
+            if last.exists():
+                last.rename(last.with_suffix(".fp32.bak"))
+            status["runs"][rid] = {"state": "pending", "note": "redone with mixed precision"}
+    save()
+
     for model, strategy, fold in queue:
         if status["runs"].get(run_id(model, strategy, fold), {}).get("state") != "completed":
             train(model, strategy, fold)

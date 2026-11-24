@@ -69,11 +69,18 @@ def _autocast(device: torch.device, enabled: bool):
     return torch.autocast(device_type=device.type, dtype=torch.float16, enabled=enabled)
 
 
-def _grad_scaler(enabled: bool):
+def amp_enabled(config: Dict[str, Any], device: torch.device) -> bool:
+    """Mixed precision (float16 + loss scaling) on CUDA and Apple MPS GPUs, never on CPU."""
+    return bool(config["training"].get("mixed_precision")) and device.type in ("cuda", "mps")
+
+
+def _grad_scaler(device: torch.device, enabled: bool):
     try:
-        return torch.amp.GradScaler("cuda", enabled=enabled)
-    except (AttributeError, TypeError):  # torch < 2.3
-        return torch.cuda.amp.GradScaler(enabled=enabled)
+        return torch.amp.GradScaler(device.type, enabled=enabled)
+    except (AttributeError, TypeError, RuntimeError, ValueError):  # old torch or no MPS scaler
+        if device.type == "cuda":
+            return torch.cuda.amp.GradScaler(enabled=enabled)
+        return None
 
 
 @torch.no_grad()
@@ -130,7 +137,7 @@ def fit(model: nn.Module, train_loader, val_loader, *, train_labels: Iterable[in
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     model.to(device)
-    amp = bool(tcfg.get("mixed_precision")) and device.type == "cuda"
+    amp = amp_enabled(config, device)
     accum = int(tcfg.get("accumulation_steps", 1))
     patience = int(tcfg["early_stopping_patience"])
     max_epochs = int(tcfg["max_epochs"])
@@ -143,7 +150,9 @@ def fit(model: nn.Module, train_loader, val_loader, *, train_labels: Iterable[in
     steps_per_epoch = max(1, math.ceil(batches / accum))
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, warmup_cosine(steps_per_epoch * max_epochs, steps_per_epoch * int(tcfg["warmup_epochs"])))
-    scaler = _grad_scaler(amp)
+    scaler = _grad_scaler(device, amp)
+    if scaler is None:  # no loss scaler for this device: stay in float32 rather than risk underflow
+        amp, scaler = False, _grad_scaler(torch.device("cpu"), False)
 
     state = {"epoch": 0, "best_f1": -1.0, "best_epoch": 0, "best_loss": math.inf,
              "epochs_without_improvement": 0, "history": [], "train_seconds": 0.0, "stopped_early": False}
@@ -157,7 +166,10 @@ def fit(model: nn.Module, train_loader, val_loader, *, train_labels: Iterable[in
         model.load_state_dict(ckpt["model_state"])
         optimizer.load_state_dict(ckpt["optimizer_state"])
         scheduler.load_state_dict(ckpt["scheduler_state"])
-        scaler.load_state_dict(ckpt["scaler_state"])
+        try:  # a checkpoint saved without mixed precision has an empty scaler state
+            scaler.load_state_dict(ckpt["scaler_state"])
+        except RuntimeError:
+            pass
         state = ckpt["train_state"]
         _set_rng_state(ckpt["rng_state"])
         log(f"Resumed from epoch {state['epoch']} (best macro F1 {state['best_f1']:.4f} at epoch {state['best_epoch']})")
