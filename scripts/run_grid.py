@@ -24,11 +24,13 @@ import torch
 
 from drtl.config import PROJECT_ROOT, load_config
 from drtl.models import strategies_for
-from drtl.results import run_id
+from drtl.results import REAL_STATUS, file_hash, run_id
 from drtl.run import run_experiment
+from drtl.train import amp_enabled
+from drtl.utils import get_device
 
 STATUS = PROJECT_ROOT / "outputs" / "grid_status.json"
-LOW_MEMORY = {"training": {"batch_size": 16, "accumulation_steps": 2, "num_workers": 2}}
+LOW_MEMORY = {"batch_size": 16, "accumulation_steps": 2}
 
 
 def _free_memory():
@@ -45,23 +47,6 @@ def _is_oom(err: Exception) -> bool:
     return "out of memory" in text or "exited unexpectedly" in text
 
 
-def prefetch_weights(config, models, attempts=5):
-    """Download every ImageNet checkpoint once, before training, so a network drop cannot fail a run."""
-    import timm
-    for key in models:
-        name = config["models"][key]
-        if name == "scratch_cnn":
-            continue
-        for attempt in range(1, attempts + 1):
-            try:
-                timm.create_model(name, pretrained=True, num_classes=5)
-                print(f"weights ready: {name}", flush=True)
-                break
-            except Exception as err:  # network: wait and retry
-                print(f"weights {name} attempt {attempt} failed: {str(err)[:120]}", flush=True)
-                time.sleep(30 * attempt)
-
-
 def plan(config, models=None, folds=None):
     order = []
     for fold in folds if folds is not None else range(config["data"]["n_folds"]):
@@ -73,44 +58,72 @@ def plan(config, models=None, folds=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--models", nargs="*")
-    p.add_argument("--folds", nargs="*", type=int)
+    p.add_argument("--models", nargs="+")
+    p.add_argument("--folds", nargs="+", type=int)
     p.add_argument("--overrides", default="{}", help='JSON, e.g. {"training": {"num_workers": 6}}')
     a = p.parse_args()
-    config = load_config()
     base_overrides = json.loads(a.overrides)
-    status = json.loads(STATUS.read_text()) if STATUS.exists() else {}
-    status.setdefault("runs", {})
+    config = load_config(overrides=base_overrides)
+    unknown = set(a.models or ()) - set(config["models"])
+    if unknown:
+        p.error(f"unknown model(s): {', '.join(sorted(unknown))}")
     queue = plan(config, a.models, a.folds)
-    status.update(started=dt.datetime.now().isoformat(timespec="seconds"), total=len(queue))
+    if not queue or any(not 0 <= fold < config["data"]["n_folds"] for _, _, fold in queue):
+        p.error("select at least one run and use fold numbers from the configured split")
+    if len(queue) != len(set(queue)):
+        p.error("select each model and fold once")
+    status = {"runs": {}, "started": dt.datetime.now().isoformat(timespec="seconds"), "total": len(queue)}
     STATUS.parent.mkdir(parents=True, exist_ok=True)
+    results = PROJECT_ROOT / config["outputs"]["results_dir"]
+    checkpoints = PROJECT_ROOT / config["outputs"]["checkpoints_dir"]
 
     def save():
         done = [r for r in status["runs"].values() if r.get("state") == "completed"]
         status["completed"] = len(done)
         status["updated"] = dt.datetime.now().isoformat(timespec="seconds")
-        STATUS.write_text(json.dumps(status, indent=2))
+        temporary = STATUS.with_suffix(".tmp")
+        temporary.write_text(json.dumps(status, indent=2))
+        temporary.replace(STATUS)
 
-    prefetch_weights(config, a.models or list(config["models"]))
+    want_amp = amp_enabled(config, get_device())
+    split_hash = file_hash(PROJECT_ROOT / config["data"]["splits_file"])
+    config_hash = file_hash(PROJECT_ROOT / "configs" / "default.yaml")
+
+    def completed(record):
+        return {"state": "completed", "val_f1_macro": record["val_f1_macro"],
+                "epochs": record["epochs_run"], "minutes": round(record["duration_s"] / 60, 1)}
+
+    for model, strategy, fold in queue:
+        rid = run_id(model, strategy, fold)
+        path = results / f"{rid}.json"
+        if not path.exists():
+            continue
+        record = json.loads(path.read_text())
+        if record.get("status") != REAL_STATUS:
+            continue
+        if (record["amp"], record["splits_hash"], record["config_hash"]) != (want_amp, split_hash, config_hash):
+            p.error(f"{rid} was completed with a different precision, split or config. "
+                    "Use matching settings or separate output and results directories.")
+        status["runs"][rid] = completed(record)
 
     def train(model, strategy, fold):
         rid = run_id(model, strategy, fold)
         status["runs"][rid] = {"state": "running", "since": dt.datetime.now().isoformat(timespec="seconds")}
         save()
-        start = time.time()
         overrides = dict(base_overrides)
         for attempt in (1, 2, 3):
             try:
                 record = run_experiment(model, strategy, fold, overrides=overrides)
-                status["runs"][rid] = {"state": "completed", "val_f1_macro": record["val_f1_macro"],
-                                       "epochs": record["epochs_run"], "minutes": round((time.time() - start) / 60, 1),
-                                       "overrides": overrides}
+                status["runs"][rid] = completed(record)
                 break
             except Exception as err:  # keep the grid going; the error is in the status file
                 _free_memory()
                 if _is_oom(err):
-                    overrides = {**overrides, "training": {**overrides.get("training", {}), **LOW_MEMORY["training"]}}
-                else:
+                    training = {**overrides.get("training", {}), "num_workers": 0}
+                    if not (checkpoints / rid / "last.pt").exists():
+                        training.update(LOW_MEMORY)
+                    overrides = {**overrides, "training": training}
+                elif attempt < 3:
                     time.sleep(60)  # network or transient error: resume from last.pt after a pause
                 status["runs"][rid] = {"state": "failed", "error": str(err).splitlines()[0][:300],
                                        "trace": traceback.format_exc()[-1500:], "attempts": attempt}
@@ -118,19 +131,6 @@ def main():
         save()
         print(f"[{status['completed']}/{len(queue)}] {rid}: {status['runs'][rid]['state']}", flush=True)
 
-    # Runs finished under another precision setting are redone, so every run shares one setting.
-    from drtl.train import amp_enabled
-    from drtl.utils import get_device
-    want_amp = amp_enabled(config, get_device())
-    results = PROJECT_ROOT / config["outputs"]["results_dir"]
-    for rid, info in list(status["runs"].items()):
-        rec = results / f"{rid}.json"
-        if info.get("state") == "completed" and rec.exists() and json.loads(rec.read_text()).get("amp") != want_amp:
-            rec.rename(rec.with_suffix(".fp32.json.bak"))
-            last = PROJECT_ROOT / config["outputs"]["checkpoints_dir"] / rid / "last.pt"
-            if last.exists():
-                last.rename(last.with_suffix(".fp32.bak"))
-            status["runs"][rid] = {"state": "pending", "note": "redone with mixed precision"}
     save()
 
     for model, strategy, fold in queue:
@@ -140,6 +140,8 @@ def main():
         if status["runs"].get(run_id(model, strategy, fold), {}).get("state") == "failed":
             train(model, strategy, fold)
     print("Grid finished:", status["completed"], "/", len(queue))
+    if status["completed"] != len(queue):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

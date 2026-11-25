@@ -24,18 +24,18 @@ That is 4 backbones × 3 strategies + 1 baseline = **13 configurations**, each o
 | Step | Owner | State |
 |---|---|---|
 | 1. Repository and environment | ALAA EDDINE | done |
-| 2–3. Data, split, preprocessing (`scripts/prepare_data.py`) | ALAA EDDINE | code done and tested; waits for the dataset download |
+| 2–3. Data, split, preprocessing (`scripts/prepare_data.py`) | ALAA EDDINE | APTOS data prepared and split frozen |
 | 4–5. Strategies, training loop, notebook 02 | ALAA EDDINE | done, tested on SIMULATED data |
-| 6. Grid of 65 runs (`scripts/run_grid.py`) | ALAA EDDINE | ready; not started |
-| 7. Evaluation, robustness (`scripts/final_evaluation.py`) | ALAA EDDINE | code done and tested |
+| 6. Grid of 65 runs (`scripts/run_grid.py`) | ALAA EDDINE | fold-0 runs in progress |
+| 7. Evaluation, robustness (`scripts/final_evaluation.py`) | ALAA EDDINE | frozen test evaluation pending the completed grid |
 | 8–9. Grad-CAM, Gradio demo (`app/app.py`) | ALAA EDDINE | code done; SIMULATED example mode until real checkpoints |
 | 10–11. Paper, defence | team | to do |
 
 Team handoff: [docs/team/START_HERE.md](docs/team/START_HERE.md).
 
-**Results:** none yet. No model has been trained. Every prediction or metric shown in
-`docs/prototypes/` is **simulated** and labelled as such; it only shows the intended layout.
-This section will list verified test-set numbers once Step 7 is done.
+Raw validation records are in [results/runs](results/runs). The initial five runs cover all
+three MobileNetV4 strategies and two DenseNet-201 strategies on fold 0. Predictions and
+metrics in `docs/prototypes/` are **SIMULATED**. Final test results follow Step 7.
 
 ## Setup
 
@@ -53,6 +53,18 @@ python -m nbconvert --to notebook --execute notebooks/00_setup_check.ipynb --out
 
 On Apple Silicon use a native arm64 Python (`python3 -c "import platform; print(platform.machine())"`
 must print `arm64`); an Intel Anaconda running under Rosetta cannot install recent PyTorch.
+
+To continue the local float32 experiments, run `bash scripts/mac_train_all.sh --folds 0`
+from the repository root. Follow `outputs/grid.log` and `outputs/grid_status.json`. With all
+required ImageNet weights cached, set `HF_HUB_OFFLINE=1` to train without network access.
+Omit `--folds 0` to queue all five folds once enough disk space is available for both
+best-model and optimizer checkpoints.
+
+The three-fold fallback uses folds 0, 1 and 2 from the original split (39 runs).
+Use `bash scripts/mac_train_all.sh --folds 0 1 2` and then
+`python scripts/final_evaluation.py --folds 0 1 2` in the project environment.
+Each run still trains on the other four CV folds. The 511-image frozen test set
+is evaluated once after the selected grid is complete.
 
 ### Google Colab or Kaggle
 

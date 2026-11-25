@@ -158,7 +158,7 @@ def fit(model: nn.Module, train_loader, val_loader, *, train_labels: Iterable[in
              "epochs_without_improvement": 0, "history": [], "train_seconds": 0.0, "stopped_early": False}
     last_path = out_dir / LAST
     if resume and last_path.exists():
-        ckpt = torch.load(last_path, map_location=device, weights_only=False)
+        ckpt = torch.load(last_path, map_location="cpu", weights_only=False)
         for key in ("run_id", "config_hash", "splits_hash"):
             if ckpt["metadata"].get(key) != metadata.get(key):
                 raise RuntimeError(f"{last_path} belongs to another run ({key} differs); "
